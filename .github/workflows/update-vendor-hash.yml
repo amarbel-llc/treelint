@@ -1,0 +1,31 @@
+name: Update vendorHash
+on: pull_request
+
+permissions:
+    contents: write
+
+jobs:
+    dependabot:
+        runs-on: ubuntu-latest
+        if: ${{ github.actor == 'renovate[bot]' }}
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  fetch-depth: 0
+            - name: Install Nix
+              uses: cachix/install-nix-action@v31
+              with:
+                  github_access_token: ${{ secrets.GITHUB_TOKEN }}
+                  nix_path: nixpkgs=channel:nixos-unstable
+            - name: Update checksum
+              run: |
+                  nix run .#treefmt.update-vendor-hash                  
+                  # git push if we have a diff
+                  if [[ -n $(git diff) ]]; then
+                    git add nix/packages/treefmt/default.nix
+                    git config --global user.email "<29139614+renovate[bot]@users.noreply.github.com>"
+                    git config --global user.name "renovate[bot]"
+                    git commit -m "chore: update vendorHash"
+                    git push origin HEAD:${{ github.head_ref }}
+                  fi

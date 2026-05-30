@@ -1,0 +1,19 @@
+# editors
+.idea
+
+# nix
+result*
+repl-result-*
+
+# direnv
+/.direnv
+.env.local
+
+# devshell
+/.data
+
+# goreleaser
+dist/
+
+# llm
+.claude

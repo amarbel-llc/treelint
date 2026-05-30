@@ -1,0 +1,12 @@
+# The formatter multiplexer - https://github.com/numtide/treefmt
+
+[formatter.deadnix]
+command = "deadnix"
+options = ["--edit"]
+includes = ["*.nix"]
+priority = 1
+
+[formatter.nixpkgs-fmt]
+command = "nixpkgs-fmt"
+includes = ["*.nix"]
+priority = 2

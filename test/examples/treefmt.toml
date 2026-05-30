@@ -1,0 +1,96 @@
+# The formatter multiplexer - https://github.com/numtide/treefmt
+excludes = ["*.toml"]
+
+[formatter.python]
+command = "black"
+includes = ["*.py"]
+
+[formatter.go]
+command = "gofmt"
+options = ["-w"]
+includes = ["*.go"]
+
+[formatter.haskell]
+command = "ormolu"
+options = [
+    "--ghc-opt", "-XBangPatterns",
+    "--ghc-opt", "-XPatternSynonyms",
+    "--ghc-opt", "-XTypeApplications",
+    "--mode", "inplace",
+    "--check-idempotence",
+]
+includes = ["*.hs"]
+excludes = ["examples/haskell/"]
+
+[formatter.alejandra]
+command = "alejandra"
+includes = ["*.nix"]
+# Act as an example on how to exclude specific files
+excludes = ["examples/nix/sources.nix"]
+priority = 1
+
+[formatter.deadnix]
+command = "deadnix"
+options = ["-e"]
+includes = ["*.nix"]
+priority = 2
+
+[formatter.ruby]
+command = "rufo"
+options = ["-x"]
+includes = ["*.rb"]
+
+[formatter.prettier]
+command = "prettier"
+options = ["--write", "--tab-width", "4"]
+includes = [
+    "*.css",
+    "*.html",
+    "*.js",
+    "*.json",
+    "*.jsx",
+    "*.md",
+    "*.mdx",
+    "*.scss",
+    "*.ts",
+    "*.yaml",
+]
+excludes = ["CHANGELOG.md"]
+
+[formatter.rust]
+command = "rustfmt"
+options = ["--edition", "2018"]
+includes = ["*.rs"]
+
+[formatter.shellcheck]
+command = "shellcheck"
+includes = ["*.sh"]
+priority = 1
+
+[formatter.shfmt]
+command = "shfmt"
+options = ["-i", "2", "-s", "-w"]
+includes = ["*.sh"]
+priority = 2
+
+[formatter.opentofu]
+command = "tofu"
+options = ["fmt"]
+includes = ["*.tf"]
+
+[formatter.dos2unix]
+command = "dos2unix"
+includes = ["*.yaml"]
+options = ["--keepdate"]
+
+[formatter.yamlfmt]
+command = "yamlfmt"
+includes = ["*.yaml"]
+
+[formatter.foo-fmt]
+command = "foo-fmt"
+
+[formatter.just]
+command = "just"
+options = ["--fmt", "--unstable", "--justfile"]
+includes = ["**/justfile"]
