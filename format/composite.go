@@ -10,9 +10,9 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/gobwas/glob"
-	"github.com/numtide/treefmt/v2/config"
-	"github.com/numtide/treefmt/v2/stats"
-	"github.com/numtide/treefmt/v2/walk"
+	"github.com/amarbel-llc/treelint/config"
+	"github.com/amarbel-llc/treelint/stats"
+	"github.com/amarbel-llc/treelint/walk"
 	"mvdan.cc/sh/v3/expand"
 )
 

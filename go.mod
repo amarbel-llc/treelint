@@ -1,4 +1,4 @@
-module github.com/numtide/treefmt/v2
+module github.com/amarbel-llc/treelint
 
 go 1.26.1
 

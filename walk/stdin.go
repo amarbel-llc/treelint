@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/numtide/treefmt/v2/stats"
+	"github.com/amarbel-llc/treelint/stats"
 )
 
 type StdinReader struct {

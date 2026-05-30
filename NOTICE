@@ -1,0 +1,12 @@
+treelint
+========
+
+treelint is derived from treefmt, the formatter multiplexer by numtide.
+
+  Upstream:    https://github.com/numtide/treefmt
+  Imported at: v2.5.0
+  License:     MIT (see LICENSE)
+
+treelint is an independent project, not a GitHub fork. treefmt's original
+copyright and MIT license are retained verbatim in LICENSE; modifications in
+this repository are released under the same MIT license.

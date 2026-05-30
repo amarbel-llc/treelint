@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/numtide/treefmt/v2/config"
+	"github.com/amarbel-llc/treelint/config"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"

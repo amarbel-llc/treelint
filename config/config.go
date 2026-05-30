@@ -16,9 +16,9 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
-	"github.com/numtide/treefmt/v2/git"
-	"github.com/numtide/treefmt/v2/jujutsu"
-	"github.com/numtide/treefmt/v2/walk"
+	"github.com/amarbel-llc/treelint/git"
+	"github.com/amarbel-llc/treelint/jujutsu"
+	"github.com/amarbel-llc/treelint/walk"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
