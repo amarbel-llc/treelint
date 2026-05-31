@@ -15,8 +15,8 @@ import (
 )
 
 // programName is the binary's self-identification, used in usage and version
-// output. The broader treefmt -> treelint user-facing rename (TREEFMT_ env
-// prefix, treefmt.toml config filenames, docs) is tracked separately.
+// output. The broader treelint -> treelint user-facing rename (TREELINT_ env
+// prefix, treelint.toml config filenames, docs) is tracked separately.
 const programName = "treelint"
 
 func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
@@ -62,14 +62,14 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 	// add a config file flag and some others for special subcommands
 	fs.String(
 		"config-file", "",
-		"Load the config file from the given path (defaults to searching upwards for treefmt.toml or "+
-			".treefmt.toml).",
+		"Load the config file from the given path (defaults to searching upwards for treelint.toml or "+
+			".treelint.toml).",
 	)
 
 	// add a flag for the init sub command
 	fs.BoolP(
 		"init", "i", false,
-		"Create a treefmt.toml file in the current directory.",
+		"Create a treelint.toml file in the current directory.",
 	)
 
 	// add a flag for generating shell completions
@@ -138,10 +138,10 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 
 	// fallback to env
 	if configFile == "" {
-		configFile = os.Getenv("TREEFMT_CONFIG")
+		configFile = os.Getenv("TREELINT_CONFIG")
 	}
 
-	filenames := []string{"treefmt.toml", ".treefmt.toml"}
+	filenames := []string{"treelint.toml", ".treelint.toml"}
 
 	// look in PRJ_ROOT if set
 	if prjRoot := os.Getenv("PRJ_ROOT"); configFile == "" && prjRoot != "" {
@@ -157,7 +157,7 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 	if err != nil {
 		cmd.SilenceUsage = true
 
-		return fmt.Errorf("failed to find treefmt config file: %w", err)
+		return fmt.Errorf("failed to find treelint config file: %w", err)
 	}
 
 	log.Debugf("using config file: %s", configFile)

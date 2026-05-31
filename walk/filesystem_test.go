@@ -25,7 +25,7 @@ var examplesPaths = []string{
 	"haskell/Nested/Foo.hs",
 	"haskell/Setup.hs",
 	"haskell/haskell.cabal",
-	"haskell/treefmt.toml",
+	"haskell/treelint.toml",
 	"haskell-frontend/CHANGELOG.md",
 	"haskell-frontend/Main.hs",
 	"haskell-frontend/Setup.hs",
@@ -46,7 +46,7 @@ var examplesPaths = []string{
 	"terraform/main.tf",
 	"terraform/two.tf",
 	"touch.toml",
-	"treefmt.toml",
+	"treelint.toml",
 	"yaml/test.yaml",
 }
 

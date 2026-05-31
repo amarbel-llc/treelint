@@ -47,8 +47,8 @@ func Run(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string)
 
 		// Wait until we tick over into the next second before processing to ensure our EPOCH level modtime comparisons
 		// for change detection are accurate.
-		// This can fail in CI between checkout and running treefmt if everything happens too quickly.
-		// For humans, the second level precision should not be a problem as they are unlikely to run treefmt in
+		// This can fail in CI between checkout and running treelint if everything happens too quickly.
+		// For humans, the second level precision should not be a problem as they are unlikely to run treelint in
 		// sub-second succession.
 		time.Sleep(time.Until(startAfter))
 	}

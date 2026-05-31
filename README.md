@@ -1,108 +1,85 @@
 <div align="center">
 
-# treefmt
+# treelint
 
-<img src="docs/site/assets/images/logo.svg" height="150"/>
-
-**The formatter multiplexer**
-
-_A <a href="https://numtide.com/">numtide</a> project._
-
-<p>
-<a href='https://coveralls.io/github/numtide/treefmt?branch=main'><img src='https://coveralls.io/repos/github/numtide/treefmt/badge.svg?branch=main' alt='Coverage Status' /></a>
-<a href="https://github.com/numtide/treefmt/actions/workflows/release.yml"><img src="https://github.com/numtide/treefmt/actions/workflows/release.yml/badge.svg"/></a>
-<img alt="Static Badge" src="https://img.shields.io/badge/status-beta-yellow">
-<a href="https://app.element.io/#/room/#home:numtide.com"><img src="https://img.shields.io/badge/Support-%23numtide-blue"/></a>
-</p>
+**The linter and formatter multiplexer**
 
 </div>
 
-`treefmt` streamlines the process of applying formatters to your project, making it a breeze with just one command line.
+> **Status: early / pre-1.0.** treelint is a clean copy of
+> [treefmt](https://github.com/numtide/treefmt) v2.5.0 that adds first-class
+> _linting_ on top of treefmt's formatter multiplexing. The linter feature is
+> currently **designed but not yet implemented** — see
+> [RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md). Today
+> treelint behaves as treefmt does (formatter multiplexing); the
+> `[linter.<name>]` config section and `treelint check` subcommand described
+> below are the in-progress design.
 
-## Motivation
+## What it is
 
-Modern code repositories are rarely written in a single language. They often contain a mix of languages, each with its own formatting requirements.
+treelint runs all your formatters — and, by design, your linters — with one
+command. It inherits treefmt's model: treelint walks the tree, matches files to
+tools by glob, and runs the matched tools in parallel, only on files that
+changed since the last run.
 
-While working for our customers, we noticed that projects each tended to re-implement the same formatter multiplexing logic. A script that invokes all the formatters.
+The linter additions ([RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md)):
 
-What if that script was a single command?
+- A `[linter.<name>]` config section parallel to `[formatter.<name>]`.
+- First-class **repair** mode (the default — applies fixes) and **check** mode
+  (read-only — reports without writing), exposed via a `treelint check`
+  subcommand.
+- A sandbox-copy-and-diff strategy so fix-only formatters can be checked without
+  ever writing to your source tree (so checks work even on a read-only tree).
 
-What if that single command would handle all the formatters in parallel? And only format files that have changed since the previous run?
+## Install
 
-That's what treefmt is about.
+With Nix (the supported path):
 
-## About treefmt
+```
+nix build github:amarbel-llc/treelint
+./result/bin/treelint --help
+```
 
-`treefmt` runs all your formatters with one command. It’s easy to configure and fast to execute.
+Or from source with Go ≥ 1.26:
 
-![Treefmt Init](docs/site/assets/images/init.gif)
-
-Its main features are:
-
-- **Providing a unified CLI and output**
-    - You don’t need to remember which formatters are necessary for each project.
-    - Once you specify the formatters in the config file, you can trigger all of them with one command and get a
-      standardized output.
-- **Running all the formatters in parallel**
-    - A standard script loops over your folders and runs each formatter sequentially.
-    - In contrast, `treefmt` runs formatters in parallel. This way, the formatting job takes less time.
-- **Tracking file changes**
-    - When formatters are run in a script, they process all the files they encounter, regardless of whether or not
-      they have changed.
-    - `treefmt` tracks file changes, and only attempts to format files which have changed.
-
-To reformat the whole source tree, just type `treefmt` in any folder. This is a fast and simple formatting solution.
-
-## Installation
-
-You can install `treefmt` by downloading the binary. Find the binaries for different architectures [here](https://github.com/numtide/treefmt/releases).
-Otherwise, you can install the package from source code — either with [Go], or with the help of [nix].
-
-We describe the installation process in detail in the [docs].
+```
+go build -o treelint .
+```
 
 ## Usage
 
-In order to use `treefmt` in your project, make sure the config file `treefmt.toml` is present in the root folder and
-is edited to suit your needs.
-
-You can generate it with:
+Generate a starter config (writes `treelint.toml`):
 
 ```
-$ treefmt --init
+treelint --init
 ```
 
-You can then run `treefmt` in your project root folder like this:
+Format the tree (repair mode):
 
 ```
-$ treefmt
+treelint
 ```
 
-To explore the tool’s flags and options, type:
+Check the tree read-only (planned — see RFC 0001):
 
-```console
-$ treefmt --help
+```
+treelint check
 ```
 
-Additionally, there's a wrapper called [`treefmt-nix`](https://github.com/numtide/treefmt-nix) for using `treefmt` with [`nix`](https://github.com/NixOS/nix).
+Print version:
+
+```
+treelint version
+```
 
 ## Configuration
 
-Formatters are specified in the config file `treefmt.toml`, which is usually located in the project root folder. The
-generic way to specify a formatter is like this:
-
-```
-[formatter.<name>]
-command = "<formatter-command>"
-options = ["<formatter-option-1>"...]
-includes = ["<glob>"]
-```
-
-For example, if you want to use [nixpkgs-fmt] on your Nix project and rustfmt on your Rust project, then
-`treefmt.toml` will look as follows:
+Formatters are specified in `treelint.toml` (or `.treelint.toml`), discovered by
+searching upward from the working directory:
 
 ```toml
 [formatter.nix]
-command = "nixpkgs-fmt"
+command = "nixfmt"
 includes = ["*.nix"]
 
 [formatter.rust]
@@ -111,69 +88,25 @@ options = ["--edition", "2018"]
 includes = ["*.rs"]
 ```
 
-Before specifying the formatter in the config, make sure it’s installed.
+Linters will use a parallel `[linter.<name>]` section
+([RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md)):
 
-To find and share existing formatter recipes, take a look at the [docs].
+```toml
+[linter.shellcheck]
+command = "shellcheck"
+includes = ["*.sh"]
+```
 
-If you are a Nix user, you might also be interested in [treefmt-nix](https://github.com/numtide/treefmt-nix) to use Nix to configure and bring in
-formatters.
+## Formatter specification
 
-## Compatibility
+treelint runs tools that follow the
+[formatter specification](docs/site/reference/formatter-spec.md): files are
+passed as arguments, the tool writes back only on change, and it exits non-zero
+on error.
 
-`treefmt` works with any formatter that adheres to the [following specification](https://github.com/numtide/treefmt/blob/main/docs/site/reference/formatter-spec.md).
+## Provenance & license
 
-For instance, you can go for:
-
-- [clang-format] for C/C++/Java/JavaScript/JSON/Objective-C/Protobuf/C#
-- gofmt for Golang
-- Prettier for JavaScript/HTML/CSS
-
-You can find information on supported formatters [here](https://treefmt.com/latest/getting-started/configure/#supported-formatters).
-
-## IDE Integration
-
-`treefmt` currently has support for vscode via an extension:
-
-- [treefmt-vscode](https://marketplace.visualstudio.com/items?itemName=ibecker.treefmt-vscode) | [GitHub repo](https://github.com/isbecker/treefmt-vscode)
-
-## Upcoming features
-
-This project is still pretty new. Down the line we also want to add support for:
-
-- More IDE integration
-- Pre-commit hooks
-
-## Related projects
-
-- [EditorConfig](https://editorconfig.org/): unifies file indentations configuration on a per-project basis.
-- [prettier](https://prettier.io/): an opinionated code formatter for a number of languages.
-- [Super-Linter](https://github.com/github/super-linter): a project by GitHub to lint all of your code.
-- [pre-commit](https://pre-commit.com/): a framework for managing and maintaining multi-language pre-commit hooks.
-
-## Contributing
-
-All contributions are welcome! We try to keep the project simple and focused. Please refer to the [Contributing](docs/site/contributing/code.md)
-guidelines for more information.
-
-## Commercial support
-
-Looking for help or customization?
-
-Get in touch with [Numtide](https://numtide.com/) to get a quote. We make it easy for companies to work with Open
-Source projects: <https://numtide.com/contact>
-
-## License
-
-Unless explicitly stated otherwise, any contribution intentionally submitted for inclusion will be licensed under the
-[MIT license](LICENSE) without any additional terms or conditions.
-
-[Brian]: https://github.com/brianmcgee
-[zimbatm]: https://github.com/zimbatm
-[Version 1]: https://github.com/numtide/treefmt/tree/v1
-[Rust]: https://www.rust-lang.org/
-[Go]: https://go.dev/
-[Toml]: https://toml.io/en/
-[docs]: https://treefmt.com
-[nix]: https://github.com/NixOS/nix
-[nixpkgs-fmt]: https://github.com/nix-community/nixpkgs-fmt
-[clang-format]: https://clang.llvm.org/docs/ClangFormat.html
+treelint is derived from [numtide/treefmt](https://github.com/numtide/treefmt)
+v2.5.0 and is an independent project (not a GitHub fork). treefmt's original
+copyright and MIT license are retained in [LICENSE](LICENSE); see
+[NOTICE](NOTICE) for provenance. treelint is released under the MIT license.

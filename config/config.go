@@ -63,7 +63,7 @@ type Formatter struct {
 	// Indicates the order of precedence when executing this Formatter in a sequence of Formatters.
 	Priority int `mapstructure:"priority,omitempty" toml:"priority,omitempty"`
 	// Does this formatter violate [rule 1] of the formatter spec?
-	// [rule 1]: https://treefmt.com/latest/reference/formatter-spec/#1-files-passed-as-arguments
+	// [rule 1]: docs/site/reference/formatter-spec.md#1-files-passed-as-arguments
 	NoPositionalArgSupport *bool `mapstructure:"no-positional-arg-support" toml:"no-positional-arg-support"`
 }
 
@@ -74,41 +74,41 @@ type Formatter struct {
 func SetFlags(fs *pflag.FlagSet) {
 	fs.Bool(
 		"allow-missing-formatter", false,
-		"Do not exit with error if a configured formatter is missing. (env $TREEFMT_ALLOW_MISSING_FORMATTER)",
+		"Do not exit with error if a configured formatter is missing. (env $TREELINT_ALLOW_MISSING_FORMATTER)",
 	)
 	fs.Bool(
 		"ci", false,
-		"Runs treefmt in a CI mode, enabling --no-cache, --fail-on-change and adjusting some other settings "+
-			"best suited to a CI use case. (env $TREEFMT_CI)",
+		"Runs treelint in a CI mode, enabling --no-cache, --fail-on-change and adjusting some other settings "+
+			"best suited to a CI use case. (env $TREELINT_CI)",
 	)
 	fs.BoolP(
 		"clear-cache", "c", false,
-		"Reset the evaluation cache. Use in case the cache is not precise enough. (env $TREEFMT_CLEAR_CACHE)",
+		"Reset the evaluation cache. Use in case the cache is not precise enough. (env $TREELINT_CLEAR_CACHE)",
 	)
 	fs.String(
 		"cpu-profile", "",
-		"The file into which a cpu profile will be written. (env $TREEFMT_CPU_PROFILE)",
+		"The file into which a cpu profile will be written. (env $TREELINT_CPU_PROFILE)",
 	)
 	fs.StringSlice(
 		"excludes", nil,
-		"Exclude files or directories matching the specified globs. (env $TREEFMT_EXCLUDES)",
+		"Exclude files or directories matching the specified globs. (env $TREELINT_EXCLUDES)",
 	)
 	fs.Bool(
 		"fail-on-change", false,
-		"Exit with error if any changes were made. Useful for CI. (env $TREEFMT_FAIL_ON_CHANGE)",
+		"Exit with error if any changes were made. Useful for CI. (env $TREELINT_FAIL_ON_CHANGE)",
 	)
 	fs.StringSliceP(
 		"formatters", "f", nil,
-		"Specify formatters to apply. Defaults to all configured formatters. (env $TREEFMT_FORMATTERS)",
+		"Specify formatters to apply. Defaults to all configured formatters. (env $TREELINT_FORMATTERS)",
 	)
 	fs.Bool(
 		"no-cache", false,
-		"Ignore the evaluation cache entirely. Useful for CI. (env $TREEFMT_NO_CACHE)",
+		"Ignore the evaluation cache entirely. Useful for CI. (env $TREELINT_NO_CACHE)",
 	)
 	fs.StringP(
 		"on-unmatched", "u", "info",
 		"Log paths that did not match any formatters at the specified log level. Possible values are "+
-			"<debug|info|warn|error|fatal>. (env $TREEFMT_ON_UNMATCHED)",
+			"<debug|info|warn|error|fatal>. (env $TREELINT_ON_UNMATCHED)",
 	)
 	fs.Bool(
 		"stdin", false,
@@ -116,44 +116,44 @@ func SetFlags(fs *pflag.FlagSet) {
 	)
 	fs.String(
 		"tree-root", "",
-		"The root directory from which treefmt will start walking the filesystem. "+
+		"The root directory from which treelint will start walking the filesystem. "+
 			"Defaults to the root of the current git or jujutsu worktree. If not in a git or jujutsu repo, defaults to the "+
-			"directory containing the config file. (env $TREEFMT_TREE_ROOT)",
+			"directory containing the config file. (env $TREELINT_TREE_ROOT)",
 	)
 	fs.String(
 		"tree-root-cmd", "",
 		"Command to run to find the tree root. It is parsed using shlex, to allow quoting arguments that "+
 			"contain whitespace. If you wish to pass arguments containing quotes, you should use nested quotes "+
-			"e.g. \"'\" or '\"'. (env $TREEFMT_TREE_ROOT_CMD)",
+			"e.g. \"'\" or '\"'. (env $TREELINT_TREE_ROOT_CMD)",
 	)
 	fs.String(
 		"tree-root-file", "",
-		"File to search for to find the tree root. (env $TREEFMT_TREE_ROOT_FILE)",
+		"File to search for to find the tree root. (env $TREELINT_TREE_ROOT_FILE)",
 	)
 	fs.CountP(
 		"verbose", "v",
-		"Set the verbosity of logs e.g. -vv. (env $TREEFMT_VERBOSE)",
+		"Set the verbosity of logs e.g. -vv. (env $TREELINT_VERBOSE)",
 	)
 	fs.BoolP(
-		"quiet", "q", false, "Disable all logs except errors. (env $TREEFMT_QUIET)",
+		"quiet", "q", false, "Disable all logs except errors. (env $TREELINT_QUIET)",
 	)
 	fs.String(
 		"walk", "auto",
 		"The method used to traverse the files within the tree root. Currently supports "+
-			"<auto|git|jujutsu|filesystem>. (env $TREEFMT_WALK)",
+			"<auto|git|jujutsu|filesystem>. (env $TREELINT_WALK)",
 	)
 	fs.StringP(
 		"working-dir", "C", ".",
-		"Run as if treefmt was started in the specified working directory instead of the current working "+
-			"directory. (env $TREEFMT_WORKING_DIR)",
+		"Run as if treelint was started in the specified working directory instead of the current working "+
+			"directory. (env $TREELINT_WORKING_DIR)",
 	)
 }
 
 // NewViper creates a Viper instance pre-configured with the following options:
 // * TOML config type
 // * automatic env enabled
-// * `TREEFMT_` env prefix for environment variables
-// * replacement of `-` and `.` with `_` when mapping flags to env e.g. `global.excludes` => `TREEFMT_GLOBAL_EXCLUDES`.
+// * `TREELINT_` env prefix for environment variables
+// * replacement of `-` and `.` with `_` when mapping flags to env e.g. `global.excludes` => `TREELINT_GLOBAL_EXCLUDES`.
 func NewViper() (*viper.Viper, error) {
 	v := viper.New()
 
@@ -161,13 +161,13 @@ func NewViper() (*viper.Viper, error) {
 	v.SetConfigType("toml")
 
 	// Allow env overrides for config and flags.
-	v.SetEnvPrefix("treefmt")
+	v.SetEnvPrefix("treelint")
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
 	// unset some env variables that we don't want automatically applied
-	if err := os.Unsetenv("TREEFMT_STDIN"); err != nil {
-		return nil, fmt.Errorf("failed to unset TREEFMT_STDIN: %w", err)
+	if err := os.Unsetenv("TREELINT_STDIN"); err != nil {
+		return nil, fmt.Errorf("failed to unset TREELINT_STDIN: %w", err)
 	}
 
 	return v, nil

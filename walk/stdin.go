@@ -27,7 +27,7 @@ func (s StdinReader) Read(_ context.Context, files []*File) (n int, err error) {
 	}
 
 	// we attempt to preserve any file extensions as some formatters will not behave correctly without it
-	pattern := "treefmt-stdin-*" + filepath.Ext(s.path)
+	pattern := "treelint-stdin-*" + filepath.Ext(s.path)
 
 	// create a temporary file to dump stdin into
 	file, err := os.CreateTemp("", pattern)
