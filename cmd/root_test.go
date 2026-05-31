@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/amarbel-llc/treelint/cmd"
 	formatCmd "github.com/amarbel-llc/treelint/cmd/format"
 	"github.com/amarbel-llc/treelint/config"
@@ -22,6 +21,7 @@ import (
 	"github.com/amarbel-llc/treelint/stats"
 	"github.com/amarbel-llc/treelint/test"
 	"github.com/amarbel-llc/treelint/walk"
+	"github.com/charmbracelet/log"
 	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -2698,7 +2698,7 @@ func treefmt(
 	}()
 
 	// run the command
-	root, statz := cmd.NewRoot()
+	root, statz := cmd.NewRoot("dev", "unknown")
 
 	root.SetArgs(args)
 	root.SetOut(tempStdout)

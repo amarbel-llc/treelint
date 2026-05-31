@@ -5,17 +5,21 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/log"
-	"github.com/amarbel-llc/treelint/build"
 	"github.com/amarbel-llc/treelint/cmd/format"
 	_init "github.com/amarbel-llc/treelint/cmd/init"
 	"github.com/amarbel-llc/treelint/config"
 	"github.com/amarbel-llc/treelint/stats"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func NewRoot() (*cobra.Command, *stats.Stats) {
+// programName is the binary's self-identification, used in usage and version
+// output. The broader treefmt -> treelint user-facing rename (TREEFMT_ env
+// prefix, treefmt.toml config filenames, docs) is tracked separately.
+const programName = "treelint"
+
+func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 	// create a viper instance for reading in config
 	v, err := config.NewViper()
 	if err != nil {
@@ -27,9 +31,9 @@ func NewRoot() (*cobra.Command, *stats.Stats) {
 
 	// create out root command
 	cmd := &cobra.Command{
-		Use:     build.Name + " <paths...>",
+		Use:     programName + " <paths...>",
 		Short:   "The formatter multiplexer",
-		Version: build.Version,
+		Version: version + "+" + commit,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
 		},
@@ -39,7 +43,7 @@ func NewRoot() (*cobra.Command, *stats.Stats) {
 	}
 
 	// update version template
-	cmd.SetVersionTemplate("treefmt {{.Version}}")
+	cmd.SetVersionTemplate(programName + " {{.Version}}\n")
 
 	fs := cmd.Flags()
 
@@ -82,6 +86,11 @@ func NewRoot() (*cobra.Command, *stats.Stats) {
 	// bind prj_root to the tree-root flag, allowing viper to handle environment override for us
 	// conforms with https://github.com/numtide/prj-spec/blob/main/PRJ_SPEC.md
 	cobra.CheckErr(v.BindPFlag("prj_root", fs.Lookup("tree-root")))
+
+	// version subcommand (eng-versioning(7): a `version` subcommand, not only
+	// --version). treelint pins no downstream components, so it emits a single
+	// self-identification line.
+	cmd.AddCommand(newVersionCmd(programName, version, commit))
 
 	return cmd, &statz
 }

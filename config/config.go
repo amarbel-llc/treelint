@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/log"
-	"github.com/google/shlex"
 	"github.com/amarbel-llc/treelint/git"
 	"github.com/amarbel-llc/treelint/jujutsu"
 	"github.com/amarbel-llc/treelint/walk"
+	"github.com/charmbracelet/log"
+	"github.com/google/shlex"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )

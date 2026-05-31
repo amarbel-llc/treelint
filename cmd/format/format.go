@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/amarbel-llc/treelint/config"
 	"github.com/amarbel-llc/treelint/format"
 	"github.com/amarbel-llc/treelint/stats"
 	"github.com/amarbel-llc/treelint/walk"
 	"github.com/amarbel-llc/treelint/walk/cache"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"

@@ -8,11 +8,11 @@ import (
 	"os"
 	"slices"
 
-	"github.com/charmbracelet/log"
-	"github.com/gobwas/glob"
 	"github.com/amarbel-llc/treelint/config"
 	"github.com/amarbel-llc/treelint/stats"
 	"github.com/amarbel-llc/treelint/walk"
+	"github.com/charmbracelet/log"
+	"github.com/gobwas/glob"
 	"mvdan.cc/sh/v3/expand"
 )
 

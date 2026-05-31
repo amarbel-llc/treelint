@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/charmbracelet/log"
 	"github.com/amarbel-llc/treelint/stats"
+	"github.com/charmbracelet/log"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/log"
-	"github.com/gobwas/glob"
 	"github.com/amarbel-llc/treelint/config"
 	"github.com/amarbel-llc/treelint/walk"
+	"github.com/charmbracelet/log"
+	"github.com/gobwas/glob"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )

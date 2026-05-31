@@ -58,7 +58,7 @@ command = "command-to-run"
 # Command-line arguments for the command
 options = []
 # Glob pattern of files to include
-includes = [ "*.<language-extension>" ]
+includes = ["*.<language-extension>"]
 # Glob patterns of files to exclude
 excludes = []
 # Controls the order of application when multiple formatters match the same file
