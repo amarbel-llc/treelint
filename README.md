@@ -8,26 +8,25 @@
 
 > **Status: early / pre-1.0.** treelint is a clean copy of
 > [treefmt](https://github.com/numtide/treefmt) v2.5.0 that adds first-class
-> _linting_ on top of treefmt's formatter multiplexing. The linter feature is
-> currently **designed but not yet implemented** — see
-> [RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md). Today
-> treelint behaves as treefmt does (formatter multiplexing); the
-> `[linter.<name>]` config section and `treelint check` subcommand described
-> below are the in-progress design.
+> _linting_ on top of treefmt's formatter multiplexing, per
+> [RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md). The
+> `[linter.<name>]` config section, the `treelint check` subcommand, and
+> repair-mode autofixes are implemented. Expect rough edges before 1.0.
 
 ## What it is
 
-treelint runs all your formatters — and, by design, your linters — with one
-command. It inherits treefmt's model: treelint walks the tree, matches files to
-tools by glob, and runs the matched tools in parallel, only on files that
-changed since the last run.
+treelint runs all your formatters and linters with one command. It inherits
+treefmt's model: treelint walks the tree, matches files to tools by glob, and
+runs the matched tools in parallel, only on files that changed since the last
+run.
 
 The linter additions ([RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md)):
 
-- A `[linter.<name>]` config section parallel to `[formatter.<name>]`.
-- First-class **repair** mode (the default — applies fixes) and **check** mode
-  (read-only — reports without writing), exposed via a `treelint check`
-  subcommand.
+- A `[linter.<name>]` config section parallel to `[formatter.<name>]`. Its
+  `command` is a read-only check; an optional `repair-command` applies autofixes.
+- First-class **repair** mode (the default — applies formatter and linter fixes)
+  and **check** mode (read-only — reports without writing), exposed via a
+  `treelint check` subcommand.
 - A sandbox-copy-and-diff strategy so fix-only formatters can be checked without
   ever writing to your source tree (so checks work even on a read-only tree).
 
@@ -60,7 +59,8 @@ Format the tree (repair mode):
 treelint
 ```
 
-Check the tree read-only (planned — see RFC 0001):
+Check the tree read-only — runs every formatter and linter without writing.
+Exits 0 when clean, 1 when findings are detected, 2 on an operational error:
 
 ```
 treelint check
@@ -88,13 +88,27 @@ options = ["--edition", "2018"]
 includes = ["*.rs"]
 ```
 
-Linters will use a parallel `[linter.<name>]` section
-([RFC 0001](docs/rfcs/0001-linter-support-and-check-repair-modes.md)):
+A formatter may declare a native read-only check via `check-command` /
+`check-options` for use by `treelint check`; without one, the formatter is
+checked through a sandbox copy. Set `sandbox = true` to force sandbox checking
+even when a check command exists.
+
+Linters use a parallel `[linter.<name>]` section. Its `command` is the
+read-only check (it must exit non-zero on findings); add `repair-command` /
+`repair-options` to apply autofixes in repair mode. A linter with no
+`repair-command` is a no-op in repair mode:
 
 ```toml
 [linter.shellcheck]
 command = "shellcheck"
 includes = ["*.sh"]
+
+[linter.ruff]
+command = "ruff"
+options = ["check"]
+repair-command = "ruff"
+repair-options = ["check", "--fix"]
+includes = ["*.py"]
 ```
 
 ## Formatter specification
