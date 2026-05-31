@@ -118,6 +118,16 @@ func Run(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string)
 		return errors.New("exactly one path should be specified when using the --stdin flag")
 	}
 
+	// Repair-mode linter autofix (RFC 0001 §4): apply configured linter repair
+	// commands before formatting, so formatters normalise the autofixed output.
+	// This is a separate, cache-less pass so it does not perturb the formatter
+	// scheduler/cache below. Skipped in stdin mode.
+	if walkType != walk.Stdin {
+		if err := applyLinterRepairs(ctx, cfg, statz, walkType, paths); err != nil {
+			return fmt.Errorf("failed to apply linter repairs: %w", err)
+		}
+	}
+
 	// create a composite formatter which will handle applying the correct formatters to each file we traverse
 	formatter, err := format.NewCompositeFormatter(cfg, statz, format.BatchSize)
 	if err != nil {
@@ -204,4 +214,65 @@ func Run(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string)
 	}
 
 	return nil
+}
+
+// applyLinterRepairs runs configured linter repair (autofix) commands over the
+// tree in a separate, cache-less walk before the formatter pass (RFC 0001 §4).
+// It is a no-op when no linter declares a repair command.
+func applyLinterRepairs(
+	ctx context.Context,
+	cfg *config.Config,
+	statz *stats.Stats,
+	walkType walk.Type,
+	paths []string,
+) error {
+	linter, err := format.NewCompositeLinter(cfg, statz)
+	if err != nil {
+		return fmt.Errorf("failed to create linter: %w", err)
+	}
+
+	if linter.Empty() {
+		return nil
+	}
+
+	// no cache db: repair always re-runs and never writes cache state
+	walker, err := walk.NewCompositeReader(walkType, cfg.TreeRoot, paths, nil, statz)
+	if err != nil {
+		return fmt.Errorf("failed to create walker for linting: %w", err)
+	}
+
+	files := make([]*walk.File, format.BatchSize)
+
+	for {
+		readCtx, cancelRead := context.WithTimeout(ctx, 10*time.Second)
+		n, readErr := walker.Read(readCtx, files)
+		cancelRead()
+
+		if repairErr := linter.Repair(ctx, files[:n]); repairErr != nil {
+			_ = walker.Close()
+
+			return repairErr
+		}
+
+		releaseCtx := walk.SetNoCache(ctx, true)
+		for _, file := range files[:n] {
+			if releaseErr := file.Release(releaseCtx); releaseErr != nil {
+				_ = walker.Close()
+
+				return fmt.Errorf("failed to release file: %w", releaseErr)
+			}
+		}
+
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+
+			_ = walker.Close()
+
+			return fmt.Errorf("failed to read files for linting: %w", readErr)
+		}
+	}
+
+	return walker.Close()
 }
