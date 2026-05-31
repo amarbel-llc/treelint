@@ -1,5 +1,5 @@
 Require rsync
-Require treefmt
+Require treelint
 
 Set Shell zsh
 Set FontSize 11
@@ -15,11 +15,11 @@ Type "TEMP_DIR=$(mktemp -d) && rsync -av $PRJ_ROOT/test/examples/ $TEMP_DIR && p
 Enter
 Type "find . -type f -exec sh -c 'echo "  " >> {}' \;"
 Enter
-Type "alias treefmt='treefmt --allow-missing-formatter' && clear"
+Type "alias treelint='treelint --allow-missing-formatter' && clear"
 Enter
 Show
 
-Type "treefmt"
+Type "treelint"
 Sleep 1s
 Enter
 
@@ -28,7 +28,7 @@ Enter
 Enter
 Sleep 1s
 
-Type "treefmt"
+Type "treelint"
 Enter
 
 Sleep 5s

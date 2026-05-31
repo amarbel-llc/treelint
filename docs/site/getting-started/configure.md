@@ -1,6 +1,6 @@
 # Configure
 
-`treefmt`'s behaviour can be influenced in one of three ways:
+`treelint`'s behaviour can be influenced in one of three ways:
 
 1. Process flags and arguments
 2. Environment variables
@@ -17,19 +17,19 @@ precedence and values in the configuration file having the lowest.
 
 ## Config File
 
-The `treefmt` configuration file is a mixture of global options and formatter sections.
+The `treelint` configuration file is a mixture of global options and formatter sections.
 
-It should be named `treefmt.toml` or `.treefmt.toml`, and typically resides at the root of a repository.
+It should be named `treelint.toml` or `.treelint.toml`, and typically resides at the root of a repository.
 
-When executing `treefmt` within a subdirectory, `treefmt` will search upwards in the directory structure, looking for
-`treefmt.toml` or `.treefmt.toml`.
+When executing `treelint` within a subdirectory, `treelint` will search upwards in the directory structure, looking for
+`treelint.toml` or `.treelint.toml`.
 You can change this behaviour using the [config-file](#config-file_1) options
 
 !!! tip
 
-    When starting a new project you can generate an initial config file using `treefmt --init`
+    When starting a new project you can generate an initial config file using `treelint --init`
 
-```nix title="treefmt.toml"
+```nix title="treelint.toml"
 --8<-- "cmd/init/init.toml"
 ```
 
@@ -42,13 +42,13 @@ Do not exit with error if a configured formatter is missing.
 === "Flag"
 
     ```console
-    treefmt --allow-missing-formatter true
+    treelint --allow-missing-formatter true
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_ALLOW_MISSING_FORMATTER=true treefmt
+    TREELINT_ALLOW_MISSING_FORMATTER=true treelint
     ```
 
 === "Config"
@@ -59,19 +59,19 @@ Do not exit with error if a configured formatter is missing.
 
 ### `ci`
 
-Runs treefmt in a CI mode, enabling [no-cache](#no-cache), [fail-on-change](#fail-on-change) and adjusting some other settings best suited to a
+Runs treelint in a CI mode, enabling [no-cache](#no-cache), [fail-on-change](#fail-on-change) and adjusting some other settings best suited to a
 continuous integration environment.
 
 === "Flag"
 
     ```console
-    treefmt --ci
+    treelint --ci
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_CI=true treefmt
+    TREELINT_CI=true treelint
     ```
 
 ### `clear-cache`
@@ -81,14 +81,14 @@ Reset the evaluation cache. Use in case the cache is not precise enough.
 === "Flag"
 
     ```console
-    treefmt -c
-    treefmt --clear-cache
+    treelint -c
+    treelint --clear-cache
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_CLEAR_CACHE=true treefmt
+    TREELINT_CLEAR_CACHE=true treelint
     ```
 
 ### `config-file`
@@ -96,13 +96,13 @@ Reset the evaluation cache. Use in case the cache is not precise enough.
 === "Flag"
 
     ```console
-    treefmt --config-file /tmp/treefmt.toml
+    treelint --config-file /tmp/treelint.toml
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_CONFIG=/tmp/treefmt.toml treefmt
+    TREELINT_CONFIG=/tmp/treelint.toml treelint
     ```
 
 ### `cpu-profile`
@@ -112,13 +112,13 @@ The file into which a [pprof](https://github.com/google/pprof) cpu profile will 
 === "Flag"
 
     ```console
-    treefmt --cpu-profile ./cpu.pprof
+    treelint --cpu-profile ./cpu.pprof
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_CPU_PROFILE=./cpu.pprof treefmt
+    TREELINT_CPU_PROFILE=./cpu.pprof treelint
     ```
 
 === "Config"
@@ -134,13 +134,13 @@ An optional list of [glob patterns](#glob-patterns-format) used to exclude files
 === "Flag"
 
     ```console
-    treefmt --excludes *.toml,*.php,README
+    treelint --excludes *.toml,*.php,README
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_EXCLUDES="*.toml,*.php,README" treefmt
+    TREELINT_EXCLUDES="*.toml,*.php,README" treelint
     ```
 
 === "Config"
@@ -156,13 +156,13 @@ Exit with error if any changes were made during execution.
 === "Flag"
 
     ```console
-    treefmt --fail-on-change true
+    treelint --fail-on-change true
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_FAIL_ON_CHANGE=true treefmt
+    TREELINT_FAIL_ON_CHANGE=true treelint
     ```
 
 === "Config"
@@ -179,14 +179,14 @@ Defaults to all configured formatters.
 === "Flag"
 
     ```console
-    treefmt -f go,toml,haskell
-    treefmt --formatters go,toml,haskell
+    treelint -f go,toml,haskell
+    treelint --formatters go,toml,haskell
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_FORMATTERS=go,toml,haskell treefmt
+    TREELINT_FORMATTERS=go,toml,haskell treelint
     ```
 
 === "Config"
@@ -217,13 +217,13 @@ Ignore the evaluation cache entirely. Useful for CI.
 === "Flag"
 
     ```console
-    treefmt --no-cache
+    treelint --no-cache
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_NO_CACHE=true treefmt
+    TREELINT_NO_CACHE=true treelint
     ```
 
 ### `on-unmatched`
@@ -238,14 +238,14 @@ Possible values are `<debug|info|warn|error|fatal>`.
 === "Flag"
 
     ```console
-    treefmt -u debug
-    treefmt --on-unmatched debug
+    treelint -u debug
+    treelint --on-unmatched debug
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_ON_UNMACTHED=info treefmt
+    TREELINT_ON_UNMACTHED=info treelint
     ```
 
 === "Config"
@@ -261,13 +261,13 @@ Suppress all output except for errors.
 === "Flag"
 
     ```console
-    treefmt --quiet
+    treelint --quiet
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_QUIET=true treefmt
+    TREELINT_QUIET=true treelint
     ```
 
 ### `stdin`
@@ -280,24 +280,24 @@ You must provide a single path argument, the value of which is used to match aga
 === "Flag"
 
     ```console
-    cat ../test.go | treefmt --stdin foo.go
+    cat ../test.go | treelint --stdin foo.go
     ```
 
 ### `tree-root`
 
-The root directory from which treefmt will start walking the filesystem.
+The root directory from which treelint will start walking the filesystem.
 Defaults to the directory containing the config file.
 
 === "Flag"
 
     ```console
-    treefmt --tree-root /tmp/foo
+    treelint --tree-root /tmp/foo
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_TREE_ROOT=/tmp/foo treefmt
+    TREELINT_TREE_ROOT=/tmp/foo treelint
     ```
 
 === "Config"
@@ -320,7 +320,7 @@ If you wish to pass arguments containing quotes, you should use nested quotes e.
     If [walk](#walk) is set to `jujutsu` and no tree root option has been defined, `tree-root-cmd` will be defaulted to
     `jj workspace root`.
 
-    if [walk](#walk) is set to `auto` (the default), `treefmt` will check if the [working directory](#working-dir) is
+    if [walk](#walk) is set to `auto` (the default), `treelint` will check if the [working directory](#working-dir) is
     inside a git worktree. If it is, `tree-root-cmd` will be defaulted as described above for `git`. If the [working
     directory](#working-dir) is inside a jujutsu worktree the `tree-root-cmd` will be defaulted as described above for
     `jujutsu`.
@@ -328,13 +328,13 @@ If you wish to pass arguments containing quotes, you should use nested quotes e.
 === "Flag"
 
     ```console
-    treefmt --tree-root-cmd "git rev-parse --show-toplevel"
+    treelint --tree-root-cmd "git rev-parse --show-toplevel"
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_TREE_ROOT_CMD="git rev-parse --show-toplevel" treefmt
+    TREELINT_TREE_ROOT_CMD="git rev-parse --show-toplevel" treelint
     ```
 
 === "Config"
@@ -350,13 +350,13 @@ File to search for to find the tree root (if `tree-root` is not set)
 === "Flag"
 
     ```console
-    treefmt --tree-root-file .git/config
+    treelint --tree-root-file .git/config
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_TREE_ROOT_FILE=.git/config treefmt
+    TREELINT_TREE_ROOT_FILE=.git/config treelint
     ```
 
 === "Config"
@@ -378,13 +378,13 @@ Set the verbosity level of logs:
     The number of `v`'s passed matches the level set.
 
     ```console
-    treefmt -vv
+    treelint -vv
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_VERBOSE=1 treefmt
+    TREELINT_VERBOSE=1 treelint
     ```
 
 === "Config"
@@ -401,13 +401,13 @@ Currently, we support 'auto', 'git', 'jujutsu' or 'filesystem'
 === "Flag"
 
     ```console
-    treefmt --walk filesystem
+    treelint --walk filesystem
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_WALK=filesystem treefmt
+    TREELINT_WALK=filesystem treelint
     ```
 
 === "Config"
@@ -418,24 +418,24 @@ Currently, we support 'auto', 'git', 'jujutsu' or 'filesystem'
 
 ### `working-dir`
 
-Run as if `treefmt` was started in the specified working directory instead of the current working directory.
+Run as if `treelint` was started in the specified working directory instead of the current working directory.
 
 === "Flag"
 
     ```console
-    treefmt -C /tmp/foo
-    treefmt --working-dir /tmp/foo
+    treelint -C /tmp/foo
+    treelint --working-dir /tmp/foo
     ```
 
 === "Env"
 
     ```console
-    TREEFMT_WORKING_DIR=/tmp/foo treefmt
+    TREELINT_WORKING_DIR=/tmp/foo treelint
     ```
 
 ## Formatter Options
 
-Formatters are configured using a [table](https://toml.io/en/v1.0.0#table) entry in `treefmt.toml` of the form
+Formatters are configured using a [table](https://toml.io/en/v1.0.0#table) entry in `treelint.toml` of the form
 `[formatter.<name>]`:
 
 ```toml
@@ -474,21 +474,21 @@ Influences the order of execution. Greater precedence is given to lower numbers,
 
 ### `no-positional-arg-support`
 
-If `true`, `treefmt` will invoke the formatter with no more than 1 file at a time.
+If `true`, `treelint` will invoke the formatter with no more than 1 file at a time.
 
 Enable this if the formatter can only format 1 file at a time (a violation of
 [rule 1 of the formatter spec](https://treefmt.com/latest/reference/formatter-spec/#1-files-passed-as-arguments)).
 
 ## Same file, multiple formatters?
 
-For each file, `treefmt` determines a list of formatters based on the configured `includes` / `excludes` rules. This list is
+For each file, `treelint` determines a list of formatters based on the configured `includes` / `excludes` rules. This list is
 then sorted, first by priority (lower the value, higher the precedence) and secondly by formatter name (lexicographically).
 
 The resultant sequence of formatters is used to create a batch key, and similarly matched files get added to that batch
 until it is full, at which point the files are passed to each formatter in turn.
 
-This means that `treefmt` **guarantees only one formatter will be operating on a given file at any point in time**.
-Another consequence is that formatting is deterministic for a given file and a given `treefmt` configuration.
+This means that `treelint` **guarantees only one formatter will be operating on a given file at any point in time**.
+Another consequence is that formatting is deterministic for a given file and a given `treelint` configuration.
 
 By setting the priority fields appropriately, you can control the order in which those formatters are applied for any
 files they _both happen to match on_.

@@ -29,7 +29,7 @@ WARNING -  The following pages exist in the docs directory, but are not included
              - index.md
 INFO    -  Documentation built in 0.26 seconds
 INFO    -  [16:22:36] Watching paths for changes: 'docs/content', 'mkdocs.yml'
-INFO    -  [16:22:36] Serving on http://127.0.0.1:8000/treefmt/
+INFO    -  [16:22:36] Serving on http://127.0.0.1:8000/treelint/
 ```
 
 ## Versioning & Publication
@@ -43,15 +43,10 @@ configured to serve from.
 
     More information about versioning with [MkDocs Material] and [mike] can be found [here](https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/).
 
-There is a github workflow, `.github/workflows/gh-pages.yml` which is responsible for publishing the docs.
-It does the following:
-
-- On merge to `main`, the docs version [main](https://numtide.github.io/treefmt/main/) is updated.
-- When a new tag is created of the form `v.<major>.<minor>.<patch>` a docs version `v<major>.<minor>` is created and the
-  [latest](https://numtide.github.io/treefmt/latest) alias is updated to point to this.
-
-The idea is that users will land on the latest released version of the docs by default, with `main` being available if
-they wish to read about unreleased features and changes.
+treelint does not currently publish this documentation site; build it locally
+with the commands above to preview changes. treefmt's `gh-pages.yml` publishing
+workflow was dropped during the migration to the eng conventions, so a treelint
+docs-deployment workflow would need to be added if the site is ever published.
 
 To preview the versions locally you can use `mike serve` instead of `mkdocs serve`.
 

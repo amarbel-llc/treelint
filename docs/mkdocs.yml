@@ -1,12 +1,12 @@
 # Project info
-site_name: Treefmt
-site_url: https://treefmt.com
+site_name: Treelint
+site_url: https://github.com/amarbel-llc/treelint
 site_description: >-
-    The formatter multiplexer.
+    The linter and formatter multiplexer.
 
 # Repository
-repo_name: numtide/treefmt
-repo_url: https://github.com/numtide/treefmt
+repo_name: amarbel-llc/treelint
+repo_url: https://github.com/amarbel-llc/treelint
 
 # Copyright
 copyright: >-
@@ -72,11 +72,7 @@ extra:
         provider: mike
     social:
         - icon: fontawesome/brands/github
-          link: https://github.com/numtide
-        - icon: fontawesome/brands/x-twitter
-          link: https://x.com/numtide
-        - icon: fontawesome/brands/mastodon
-          link: https://fosstodon.org/@numtide
+          link: https://github.com/amarbel-llc/treelint
 
 extra_css:
     - stylesheets/extra.css

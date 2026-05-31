@@ -1,4 +1,4 @@
-Require treefmt
+Require treelint
 Require nano
 
 Set Shell zsh
@@ -15,11 +15,11 @@ Type "TEMP_DIR=$(mktemp -d) && cd $TEMP_DIR && clear"
 Enter
 
 Show
-Type "treefmt --init"
+Type "treelint --init"
 Enter
 Sleep 2s
 
-Type "nano treefmt.toml"
+Type "nano treelint.toml"
 Enter
 Sleep 5s
 
