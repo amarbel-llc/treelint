@@ -34,6 +34,13 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 		Use:     programName + " <paths...>",
 		Short:   "The linter and formatter multiplexer",
 		Version: version + "+" + commit,
+		// Positional args are paths to format/check. Without an explicit Args
+		// validator, cobra treats the first positional as a subcommand name
+		// once subcommands (check, version) are registered, breaking
+		// `treelint <paths...>` with "unknown command". ArbitraryArgs lets
+		// non-subcommand args fall through to RunE while `check`/`version`
+		// still dispatch.
+		Args: cobra.ArbitraryArgs,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
 		},
