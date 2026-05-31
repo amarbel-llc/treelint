@@ -62,6 +62,44 @@ func writeAndReadBack(t *testing.T, v *viper.Viper, cfg *config.Config) {
 	}
 }
 
+func TestLinterConfig(t *testing.T) {
+	as := require.New(t)
+
+	v, _ := newViper(t)
+
+	cfg := &config.Config{
+		LinterConfigs: map[string]*config.Linter{
+			"shellcheck": {
+				Command:  "shellcheck",
+				Includes: []string{"*.sh"},
+			},
+			"ruff": {
+				Command:       "ruff",
+				Options:       []string{"check"},
+				Includes:      []string{"*.py"},
+				RepairCommand: "ruff",
+				RepairOptions: []string{"check", "--fix"},
+			},
+		},
+	}
+
+	writeAndReadBack(t, v, cfg)
+
+	decoded, err := config.FromViper(v)
+	as.NoError(err)
+	as.Len(decoded.LinterConfigs, 2)
+
+	sc := decoded.LinterConfigs["shellcheck"]
+	as.NotNil(sc)
+	as.Equal("shellcheck", sc.Command)
+	as.Equal([]string{"*.sh"}, sc.Includes)
+
+	ruff := decoded.LinterConfigs["ruff"]
+	as.NotNil(ruff)
+	as.Equal("ruff", ruff.RepairCommand)
+	as.Equal([]string{"check", "--fix"}, ruff.RepairOptions)
+}
+
 func readError(t *testing.T, v *viper.Viper, cfg *config.Config, test func(error)) {
 	t.Helper()
 

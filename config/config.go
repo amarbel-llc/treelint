@@ -45,6 +45,8 @@ type Config struct {
 
 	FormatterConfigs map[string]*Formatter `mapstructure:"formatter" toml:"formatter,omitempty"`
 
+	LinterConfigs map[string]*Linter `mapstructure:"linter" toml:"linter,omitempty"`
+
 	Global struct {
 		// Deprecated: Use Excludes
 		Excludes []string `mapstructure:"excludes" toml:"excludes,omitempty"`
@@ -65,6 +67,39 @@ type Formatter struct {
 	// Does this formatter violate [rule 1] of the formatter spec?
 	// [rule 1]: docs/site/reference/formatter-spec.md#1-files-passed-as-arguments
 	NoPositionalArgSupport *bool `mapstructure:"no-positional-arg-support" toml:"no-positional-arg-support"`
+	// CheckCommand is an optional native read-only check invocation used by
+	// `treelint check` instead of the sandbox-and-diff strategy (RFC 0001 §3).
+	CheckCommand string `mapstructure:"check-command,omitempty" toml:"check-command,omitempty"`
+	// CheckOptions are the args passed to CheckCommand.
+	CheckOptions []string `mapstructure:"check-options,omitempty" toml:"check-options,omitempty"`
+	// Sandbox forces sandbox execution in check mode even when a native check
+	// command is available (RFC 0001 §3, §6).
+	Sandbox bool `mapstructure:"sandbox,omitempty" toml:"sandbox,omitempty"`
+}
+
+// Linter represents a tool that inspects files and reports problems, exiting
+// non-zero when problems are found. Configured under [linter.<name>]; see
+// docs/rfcs/0001-linter-support-and-check-repair-modes.md (RFC 0001 §4).
+type Linter struct {
+	// Command is the read-only check invocation, run as
+	// `command [options] [...files]`. It MUST NOT write to the files and MUST
+	// exit non-zero when at least one passed file has a finding.
+	Command string `mapstructure:"command" toml:"command"`
+	// Options are an optional list of args passed before the file list.
+	Options []string `mapstructure:"options,omitempty" toml:"options,omitempty"`
+	// Includes is a list of glob patterns selecting files this Linter inspects.
+	Includes []string `mapstructure:"includes,omitempty" toml:"includes,omitempty"`
+	// Excludes is an optional list of glob patterns excluding files from this Linter.
+	Excludes []string `mapstructure:"excludes,omitempty" toml:"excludes,omitempty"`
+	// Priority controls execution order within a file's tool sequence; lower runs first.
+	Priority int `mapstructure:"priority,omitempty" toml:"priority,omitempty"`
+	// NoPositionalArgSupport indicates the tool cannot process multiple files at once.
+	NoPositionalArgSupport *bool `mapstructure:"no-positional-arg-support" toml:"no-positional-arg-support"`
+	// RepairCommand is an optional autofix invocation used in repair mode. If
+	// unset, the linter is a no-op in repair mode (RFC 0001 §4).
+	RepairCommand string `mapstructure:"repair-command,omitempty" toml:"repair-command,omitempty"`
+	// RepairOptions are the args passed to RepairCommand.
+	RepairOptions []string `mapstructure:"repair-options,omitempty" toml:"repair-options,omitempty"`
 }
 
 // SetFlags appends our flags to the provided flag set.
@@ -227,6 +262,16 @@ func FromViper(v *viper.Viper) (*Config, error) {
 		if !nameRegex.MatchString(name) {
 			return nil, fmt.Errorf(
 				"formatter name %q is invalid, must be of the form %s",
+				name, nameRegex.String(),
+			)
+		}
+	}
+
+	// validate linter names do not contain invalid characters (RFC 0001 §4)
+	for name := range cfg.LinterConfigs {
+		if !nameRegex.MatchString(name) {
+			return nil, fmt.Errorf(
+				"linter name %q is invalid, must be of the form %s",
 				name, nameRegex.String(),
 			)
 		}
