@@ -16,9 +16,6 @@ var (
 )
 
 func main() {
-	// todo how are exit codes thrown by commands?
 	root, _ := cmd.NewRoot(version, commit)
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
-	}
+	os.Exit(cmd.ExitCode(root.Execute()))
 }

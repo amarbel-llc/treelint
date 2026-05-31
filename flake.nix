@@ -76,6 +76,9 @@
             pkgs-master.golangci-lint
             pkgs-master.gopls
             pkgs.just
+            # A real linter for dogfooding `treelint check` and for the
+            # check/linter test paths (RFC 0001).
+            pkgs.shellcheck
           ];
         };
       }

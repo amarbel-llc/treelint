@@ -546,7 +546,7 @@ func TestConfigFile(t *testing.T) {
 				withEnv(map[string]string{
 					// TREELINT_CONFIG takes precedence
 					"TREELINT_CONFIG": configPath,
-					"PRJ_ROOT":       tempDir,
+					"PRJ_ROOT":        tempDir,
 				}),
 				withNoError(t),
 				withStats(t, map[stats.Type]int{

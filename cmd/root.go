@@ -15,8 +15,8 @@ import (
 )
 
 // programName is the binary's self-identification, used in usage and version
-// output. The broader treelint -> treelint user-facing rename (TREELINT_ env
-// prefix, treelint.toml config filenames, docs) is tracked separately.
+// output. The broader treefmt -> treelint user-facing rename (TREEFMT_ env
+// prefix, treefmt.toml config filenames, docs) is tracked separately.
 const programName = "treelint"
 
 func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
@@ -29,10 +29,10 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 	// create a new stats instance
 	statz := stats.New()
 
-	// create out root command
+	// create our root command
 	cmd := &cobra.Command{
 		Use:     programName + " <paths...>",
-		Short:   "The formatter multiplexer",
+		Short:   "The linter and formatter multiplexer",
 		Version: version + "+" + commit,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
@@ -45,10 +45,10 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 	// update version template
 	cmd.SetVersionTemplate(programName + " {{.Version}}\n")
 
-	fs := cmd.Flags()
-
-	// add our config flags to the command's flag set
-	config.SetFlags(fs)
+	// Config flags live on persistent flags so subcommands (e.g. `check`)
+	// inherit the same tree-root / walk / excludes / config-file options.
+	pfs := cmd.PersistentFlags()
+	config.SetFlags(pfs)
 
 	// xor tree-root, tree-root-cmd and tree-root-file flags
 	cmd.MarkFlagsMutuallyExclusive(
@@ -57,53 +57,61 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 		"tree-root-file",
 	)
 
-	cmd.HelpTemplate()
-
-	// add a config file flag and some others for special subcommands
-	fs.String(
+	pfs.String(
 		"config-file", "",
 		"Load the config file from the given path (defaults to searching upwards for treelint.toml or "+
 			".treelint.toml).",
 	)
 
-	// add a flag for the init sub command
+	// Root-only shortcut flags for the init / completion sub-behaviours.
+	fs := cmd.Flags()
+
 	fs.BoolP(
 		"init", "i", false,
 		"Create a treelint.toml file in the current directory.",
 	)
 
-	// add a flag for generating shell completions
 	fs.String(
 		"completion", "",
 		"[bash|zsh|fish] Generate shell completion scripts for the specified shell.",
 	)
 
-	// bind our command's flags to viper
-	if err := v.BindPFlags(fs); err != nil {
-		cobra.CheckErr(fmt.Errorf("failed to bind global config to viper: %w", err))
+	// bind our config flags to viper
+	if err := v.BindPFlags(pfs); err != nil {
+		cobra.CheckErr(fmt.Errorf("failed to bind config flags to viper: %w", err))
 	}
 
 	// bind prj_root to the tree-root flag, allowing viper to handle environment override for us
 	// conforms with https://github.com/numtide/prj-spec/blob/main/PRJ_SPEC.md
-	cobra.CheckErr(v.BindPFlag("prj_root", fs.Lookup("tree-root")))
+	cobra.CheckErr(v.BindPFlag("prj_root", pfs.Lookup("tree-root")))
 
-	// version subcommand (eng-versioning(7): a `version` subcommand, not only
-	// --version). treelint pins no downstream components, so it emits a single
-	// self-identification line.
+	cmd.AddCommand(newCheckCmd(v, &statz))
 	cmd.AddCommand(newVersionCmd(programName, version, commit))
 
 	return cmd, &statz
 }
 
+// changeWorkingDir resolves and changes to the configured working directory,
+// returning its absolute path. Shared by the format and check entry points.
+func changeWorkingDir(v *viper.Viper) (string, error) {
+	workingDir, err := filepath.Abs(v.GetString("working-dir"))
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path for working directory: %w", err)
+	}
+
+	if err = os.Chdir(workingDir); err != nil {
+		return "", fmt.Errorf("failed to change working directory: %w", err)
+	}
+
+	return workingDir, nil
+}
+
 func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string) error {
 	flags := cmd.Flags()
 
-	// change working directory if required
-	workingDir, err := filepath.Abs(v.GetString("working-dir"))
+	workingDir, err := changeWorkingDir(v)
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for working directory: %w", err)
-	} else if err = os.Chdir(workingDir); err != nil {
-		return fmt.Errorf("failed to change working directory: %w", err)
+		return err
 	}
 
 	// check if we are running the init command
@@ -128,7 +136,19 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 		return nil
 	}
 
-	// otherwise attempt to load the config file
+	if err := loadConfig(v, cmd, workingDir); err != nil {
+		return err
+	}
+
+	// format
+	return format.Run(v, statz, cmd, args) //nolint:wrapcheck
+}
+
+// loadConfig discovers and reads the treelint config file into viper and
+// configures logging. It assumes the working directory has already been set
+// (see changeWorkingDir) and is shared by the format and check entry points.
+func loadConfig(v *viper.Viper, cmd *cobra.Command, workingDir string) error {
+	flags := cmd.Flags()
 
 	// use the path specified by the flag
 	configFile, err := flags.GetString("config-file")
@@ -188,6 +208,5 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 		}
 	}
 
-	// format
-	return format.Run(v, statz, cmd, args) //nolint:wrapcheck
+	return nil
 }

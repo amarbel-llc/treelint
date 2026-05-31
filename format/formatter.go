@@ -40,9 +40,10 @@ type Formatter struct {
 	name   string
 	config *config.Formatter
 
-	log        *log.Logger
-	executable string // path to the executable described by Command
-	workingDir string
+	log             *log.Logger
+	executable      string // path to the executable described by Command
+	checkExecutable string // resolved CheckCommand (empty if none configured)
+	workingDir      string
 
 	// internal, compiled versions of Includes and Excludes.
 	includes []glob.Glob
@@ -182,6 +183,16 @@ func newFormatter(
 	}
 
 	f.executable = executable
+
+	// resolve the optional native check command (RFC 0001 §3)
+	if cfg.CheckCommand != "" {
+		checkExe, err := interp.LookPathDir(treeRoot, env, cfg.CheckCommand)
+		if err != nil {
+			return nil, fmt.Errorf("%w: error looking up check command '%s'", ErrCommandNotFound, cfg.CheckCommand)
+		}
+
+		f.checkExecutable = checkExe
+	}
 
 	// initialise internal state
 	if cfg.Priority > 0 {
