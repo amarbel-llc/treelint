@@ -17,3 +17,6 @@ dist/
 
 # llm
 .claude
+
+# go
+build/
