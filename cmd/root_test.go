@@ -2160,12 +2160,13 @@ func TestStdin(t *testing.T) {
 		}),
 	)
 
-	// try with a justfile and a path which doesn't exist within the project root
-	contents = `
-# print this message
+	// try with a justfile and a path which doesn't exist within the project root.
+	// No leading blank line in the input: just --fmt (an --unstable feature)
+	// preserves leading blanks as of just 1.51.0, so asserting it gets stripped
+	// would couple this test to a specific just version. See issue discussion.
+	contents = `# print this message
 help:
         just --list --list-submodules --unsorted
-
 `
 	os.Stdin = test.TempFile(t, "", "stdin", &contents)
 

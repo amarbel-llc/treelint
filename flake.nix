@@ -79,7 +79,11 @@
             # A real linter for dogfooding `treelint check` and for the
             # check/linter test paths (RFC 0001).
             pkgs.shellcheck
-          ];
+          ]
+          # Formatter binaries + test-fmt-* helpers the Go test suite shells
+          # out to (cmd/root_test.go, format/formatter_test.go). Run via
+          # `just test-go`, which evaluates this devShell fresh.
+          ++ (import ./nix/packages/treelint/formatters.nix pkgs);
         };
       }
     );

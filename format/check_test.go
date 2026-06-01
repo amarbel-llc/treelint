@@ -115,3 +115,56 @@ func TestCompositeCheckerSandbox(t *testing.T) {
 	as.NoError(err)
 	as.Equal(string(before), string(after))
 }
+
+// TestCompositeCheckerSandboxReadOnlySource is a regression test for the
+// writable-sandbox-copy fix (commit e58928e, issue #3): a read-only source
+// (mode 0444, e.g. a /nix/store path under `nix flake check`) must still be
+// checkable by a fix-only formatter. copyIntoSandbox forces owner read+write on
+// the copy so the formatter rewrites it in place; the original is never touched.
+func TestCompositeCheckerSandboxReadOnlySource(t *testing.T) {
+	as := require.New(t)
+	root := t.TempDir()
+
+	// stub fix-only formatter: unconditionally append a newline. If the sandbox
+	// copy is read-only the `>>` fails and the script exits non-zero, which is
+	// exactly how a real fix-only formatter (gofumpt -w, …) reports the denial.
+	fix := writeFile(t, root, "fix.sh",
+		"#!/usr/bin/env bash\nfor f in \"$@\"; do printf '\\n' >> \"$f\"; done\n", 0o755)
+
+	// read-only source that needs formatting
+	const want = "no-trailing-newline"
+	src := writeFile(t, root, "needs.txt", want, 0o444)
+
+	statz := stats.New()
+
+	cfg := &config.Config{
+		TreeRoot:    root,
+		OnUnmatched: "info",
+		FormatterConfigs: map[string]*config.Formatter{
+			"stub": {Command: fix, Includes: []string{"*.txt"}},
+		},
+	}
+
+	checker, err := format.NewCompositeChecker(cfg, &statz)
+	as.NoError(err)
+
+	// pre-fix this errored with "permission denied" because the sandbox copy
+	// inherited the source's read-only mode.
+	findings, err := checker.Check(context.Background(), []*walk.File{
+		walkFile(t, root, "needs.txt"),
+	})
+	as.NoError(err)
+
+	as.Len(findings, 1)
+	as.Equal(format.FindingFormat, findings[0].Kind)
+	as.Equal("needs.txt", findings[0].Path)
+
+	// the source must be untouched: same content and still read-only
+	after, err := os.ReadFile(src)
+	as.NoError(err)
+	as.Equal(want, string(after))
+
+	info, err := os.Stat(src)
+	as.NoError(err)
+	as.Equal(os.FileMode(0o444), info.Mode().Perm())
+}
