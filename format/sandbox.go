@@ -185,9 +185,14 @@ func copyIntoSandbox(treeRoot, dir string, file *walk.File) error {
 		return fmt.Errorf("failed to read %s: %w", file.RelPath, err)
 	}
 
+	// The sandbox copy must be writable by us: fix-only formatters rewrite it
+	// in place during check mode, and the source may be read-only (e.g. a
+	// /nix/store path under `nix flake check`). Preserving the source mode
+	// verbatim would leave a read-only copy and the formatter would fail with
+	// "permission denied", so keep the source perms but force owner read+write.
 	mode := os.FileMode(0o600)
 	if fi, statErr := os.Stat(srcPath); statErr == nil {
-		mode = fi.Mode().Perm()
+		mode = fi.Mode().Perm() | 0o600
 	}
 
 	dst := filepath.Join(dir, file.RelPath)
