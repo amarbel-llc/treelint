@@ -83,15 +83,27 @@ func (c *CompositeChecker) Check(ctx context.Context, files []*walk.File) ([]Fin
 	var findings []Finding
 
 	for f, fs := range formatterFiles {
+		// Progress output: a fix-only formatter checked via sandbox-and-diff
+		// can run for a long time over a large file set with no other signal,
+		// making a slow run indistinguishable from a hang. Announce each
+		// formatter (and its file count) before it runs so -v surfaces which
+		// tool is active. Per-phase (copy vs. run) detail is logged at -vv in
+		// checkSandbox.
+		log.Infof("checking %d files with formatter %q", len(fs), f.Name())
+
 		found, err := f.check(ctx, c.cfg.TreeRoot, fs)
 		if err != nil {
 			return nil, err
 		}
 
+		log.Debugf("formatter %q: %d findings", f.Name(), len(found))
+
 		findings = append(findings, found...)
 	}
 
 	for l, fs := range linterFiles {
+		log.Infof("checking %d files with linter %q", len(fs), l.Name())
+
 		hasFindings, output, err := l.Check(ctx, fs)
 		if err != nil {
 			return nil, err
