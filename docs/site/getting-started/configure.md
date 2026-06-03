@@ -509,9 +509,13 @@ Any formatter that follows the [spec] is supported out of the box.
 
 Already 60+ formatters are supported.
 
-To find examples, take a look at <https://github.com/numtide/treefmt-nix/tree/main/examples>.
+For per-formatter config examples, treefmt-nix's catalog is a useful reference:
+<https://github.com/numtide/treefmt-nix/tree/main/examples>.
 
-If you are a Nix user, you might also like <https://github.com/numtide/treefmt-nix>, which uses Nix to pull in the right formatter package and seamlessly integrates both together.
+If you are a Nix user, see the [Nix module guide](../guides/nix-module.md):
+conformist ships its own module that pulls in the right formatter and linter
+packages from your pinned nixpkgs and wires up `nix fmt` plus a read-only flake
+check.
 
 [spec]: ../reference/formatter-spec.md
 [TOML]: https://toml.io

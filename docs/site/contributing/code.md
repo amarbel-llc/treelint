@@ -34,11 +34,11 @@ For the most part, you _should_ be able to develop normally as you would any oth
 
 ## Formatting
 
-We use the latest released version of [conformist] and [treefmt-nix] to format the repository by running `nix fmt` from
-the root directory.
+conformist formats itself by self-consuming its own [Nix module](../guides/nix-module.md): `nix fmt` from the root
+directory runs the module's wrapper. The configuration lives in `nix/conformist.nix`.
 
-```nix title="nix/formatter.nix"
---8<-- "nix/formatter.nix"
+```nix title="nix/conformist.nix"
+--8<-- "nix/conformist.nix"
 ```
 
 ## Checks
@@ -59,4 +59,3 @@ For more information see the [next section](./docs.md).
 [Direnv]: https://direnv.net
 [devshell]: https://nix.dev/tutorials/first-steps/declarative-shell.html
 [conformist]: https://treefmt.com
-[treefmt-nix]: https://github.com/numtide/treefmt-nix

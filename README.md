@@ -111,6 +111,36 @@ repair-options = ["check", "--fix"]
 includes = ["*.py"]
 ```
 
+## Nix module
+
+conformist ships a Nix module (like
+[treefmt-nix](https://github.com/numtide/treefmt-nix), extended to cover
+linters). A flake declares its formatters and linters once and gets a generated
+config, a `nix fmt` wrapper, and a read-only `conformist check` flake check —
+with tool binaries resolved from your pinned nixpkgs.
+
+```nix
+# flake.nix
+inputs.conformist.url = "github:amarbel-llc/conformist";
+
+# ... in eachDefaultSystem:
+conformistEval = conformist.lib.evalModule pkgs {
+  package = conformist.packages.${system}.default; # required: conformist isn't in nixpkgs
+  programs.gofmt.enable = true;
+  programs.nixfmt.enable = true;
+  linters.shellcheck.enable = true;
+};
+# ...
+formatter = conformistEval.config.build.wrapper;       # nix fmt
+checks.formatting = conformistEval.config.build.check self; # nix flake check
+```
+
+A flake-parts `flakeModule` is also exported. conformist itself self-consumes this
+module for its own `nix fmt` / formatting check. See the
+[Nix module guide](docs/site/guides/nix-module.md) for the full surface:
+declaring tools the registry doesn't ship, the formatter-vs-linter namespaces,
+and the build outputs.
+
 ## Formatter specification
 
 conformist runs tools that follow the
