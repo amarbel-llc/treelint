@@ -1,4 +1,4 @@
-module github.com/amarbel-llc/treelint
+module github.com/amarbel-llc/conformist
 
 go 1.26.1
 

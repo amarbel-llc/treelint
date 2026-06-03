@@ -1,9 +1,9 @@
 # Handling Unmatched Files
 
-By default, treelint lists all files that aren't matched by any formatter:
+By default, conformist lists all files that aren't matched by any formatter:
 
 ```console
-$ treelint
+$ conformist
 WARN no formatter for path: .gitignore
 WARN no formatter for path: LICENSE
 WARN no formatter for path: README.md
@@ -21,7 +21,7 @@ This helps you decide whether to add formatters for specific files or ignore the
 
 If you find the unmatched file warnings too noisy, you can lower the logging level in your config:
 
-`treelint.toml`:
+`conformist.toml`:
 
 ```toml
 on-unmatched = "debug"
@@ -30,7 +30,7 @@ on-unmatched = "debug"
 To later find out what files are unmatched, you can override this setting via the command line:
 
 ```console
-$ treelint --on-unmatched warn
+$ conformist --on-unmatched warn
 ```
 
 ### Enforcing Strict Matching
@@ -38,7 +38,7 @@ $ treelint --on-unmatched warn
 Another stricter policy approach is to fail the run if any unmatched files are found.
 This can be paired with an `excludes` list to ignore specific files:
 
-`treelint.toml`:
+`conformist.toml`:
 
 ```toml
 # Fail if any unmatched files are found

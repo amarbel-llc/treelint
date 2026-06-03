@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/format"
-	"github.com/amarbel-llc/treelint/stats"
-	"github.com/amarbel-llc/treelint/walk"
-	"github.com/amarbel-llc/treelint/walk/cache"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/format"
+	"github.com/amarbel-llc/conformist/stats"
+	"github.com/amarbel-llc/conformist/walk"
+	"github.com/amarbel-llc/conformist/walk/cache"
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -47,8 +47,8 @@ func Run(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string)
 
 		// Wait until we tick over into the next second before processing to ensure our EPOCH level modtime comparisons
 		// for change detection are accurate.
-		// This can fail in CI between checkout and running treelint if everything happens too quickly.
-		// For humans, the second level precision should not be a problem as they are unlikely to run treelint in
+		// This can fail in CI between checkout and running conformist if everything happens too quickly.
+		// For humans, the second level precision should not be a problem as they are unlikely to run conformist in
 		// sub-second succession.
 		time.Sleep(time.Until(startAfter))
 	}

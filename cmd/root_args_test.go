@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/amarbel-llc/treelint/cmd"
+	"github.com/amarbel-llc/conformist/cmd"
 )
 
 // TestRootAcceptsPositionalPathArgs guards against a regression where adding
-// subcommands (check, version) made cobra reject `treelint <path>` as an
+// subcommands (check, version) made cobra reject `conformist <path>` as an
 // "unknown command" instead of passing the path to the root RunE. The command
 // is expected to fail here (no config file), but the failure must not be a
 // subcommand-resolution error.

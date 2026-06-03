@@ -4,10 +4,10 @@ outline: deep
 
 # Formatter Specification
 
-To keep the design of `treelint` simple, we only support formatters that adhere to a certain standard.
+To keep the design of `conformist` simple, we only support formatters that adhere to a certain standard.
 This document outlines that standard.
 
-In this design, we rely on `treelint` to do the tree traversal, and only invoke
+In this design, we rely on `conformist` to do the tree traversal, and only invoke
 the formatter on the selected files.
 
 !!! note

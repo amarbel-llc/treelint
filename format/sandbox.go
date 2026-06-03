@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/walk"
 )
 
 // check evaluates a formatter in read-only mode and returns findings for the
@@ -103,7 +103,7 @@ func (f *Formatter) checkSandbox(ctx context.Context, treeRoot string, files []*
 	}
 
 	// os.MkdirTemp creates the directory with 0o700 permissions.
-	dir, err := os.MkdirTemp("", "treelint-check-")
+	dir, err := os.MkdirTemp("", "conformist-check-")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sandbox dir: %w", err)
 	}

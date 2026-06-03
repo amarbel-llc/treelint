@@ -1,12 +1,11 @@
 # Formatter binaries the integration/unit test suite shells out to. Mirrors
 # numtide/treefmt's nix/packages/treefmt/formatters.nix, trimmed to the
-# formatters actually referenced by test/examples/treelint.toml plus jujutsu
+# formatters actually referenced by test/examples/conformist.toml plus jujutsu
 # for the jj-backed walk tests. Imported into the devShell in flake.nix so
 # `just test-go` (which runs `nix develop --command go test ./...`) finds them
 # on PATH. gofmt/just/shellcheck are already provided by the base devShell.
-pkgs:
-with pkgs; [
-  # real formatters referenced by the default config (test/examples/treelint.toml)
+pkgs: with pkgs; [
+  # real formatters referenced by the default config (test/examples/conformist.toml)
   alejandra
   black
   deadnix

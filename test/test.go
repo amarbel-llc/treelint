@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/amarbel-llc/treelint/config"
+	"github.com/amarbel-llc/conformist/config"
 	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"

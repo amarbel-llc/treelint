@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/amarbel-llc/treelint/config"
+	"github.com/amarbel-llc/conformist/config"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ func newViper(t *testing.T) (*viper.Viper, *pflag.FlagSet) {
 	}
 
 	tempDir := t.TempDir()
-	v.SetConfigFile(filepath.Join(tempDir, "treelint.toml"))
+	v.SetConfigFile(filepath.Join(tempDir, "conformist.toml"))
 
 	// initialise a git repo to help with tree-root-cmd testing
 	cmd := exec.CommandContext(t.Context(), "git", "init")
@@ -148,7 +148,7 @@ func TestAllowMissingFormatter(t *testing.T) {
 	checkValue(true)
 
 	// env override
-	t.Setenv("TREELINT_ALLOW_MISSING_FORMATTER", "false")
+	t.Setenv("CONFORMIST_ALLOW_MISSING_FORMATTER", "false")
 	checkValue(false)
 
 	// flag override
@@ -181,7 +181,7 @@ func TestCI(t *testing.T) {
 	checkValues(false, false, false, 0)
 
 	// env override
-	t.Setenv("TREELINT_CI", "false")
+	t.Setenv("CONFORMIST_CI", "false")
 	checkValues(false, false, false, 0)
 
 	// flag override
@@ -216,7 +216,7 @@ func TestClearCache(t *testing.T) {
 	checkValue(false)
 
 	// env override
-	t.Setenv("TREELINT_CLEAR_CACHE", "false")
+	t.Setenv("CONFORMIST_CLEAR_CACHE", "false")
 	checkValue(false)
 
 	// flag override
@@ -245,7 +245,7 @@ func TestCpuProfile(t *testing.T) {
 	checkValue("/foo/bar")
 
 	// env override
-	t.Setenv("TREELINT_CPU_PROFILE", "/fizz/buzz")
+	t.Setenv("CONFORMIST_CPU_PROFILE", "/fizz/buzz")
 	checkValue("/fizz/buzz")
 
 	// flag override
@@ -280,7 +280,7 @@ func TestExcludes(t *testing.T) {
 	checkValue([]string{"fizz", "buzz"})
 
 	// env override
-	t.Setenv("TREELINT_EXCLUDES", "foo,bar")
+	t.Setenv("CONFORMIST_EXCLUDES", "foo,bar")
 	checkValue([]string{"foo", "bar"})
 
 	// flag override
@@ -309,7 +309,7 @@ func TestFailOnChange(t *testing.T) {
 	checkValue(true)
 
 	// env override
-	t.Setenv("TREELINT_FAIL_ON_CHANGE", "false")
+	t.Setenv("CONFORMIST_FAIL_ON_CHANGE", "false")
 	checkValue(false)
 
 	// flag override
@@ -350,7 +350,7 @@ func TestFormatters(t *testing.T) {
 	checkValue([]string{"echo", "touch"})
 
 	// env override
-	t.Setenv("TREELINT_FORMATTERS", "echo,date")
+	t.Setenv("CONFORMIST_FORMATTERS", "echo,date")
 	checkValue([]string{"echo", "date"})
 
 	// flag override
@@ -386,7 +386,7 @@ func TestNoCache(t *testing.T) {
 	checkValue(false)
 
 	// env override
-	t.Setenv("TREELINT_NO_CACHE", "false")
+	t.Setenv("CONFORMIST_NO_CACHE", "false")
 	checkValue(false)
 
 	// flag override
@@ -416,7 +416,7 @@ func TestQuiet(t *testing.T) {
 	checkValue(false)
 
 	// env override
-	t.Setenv("TREELINT_QUIET", "false")
+	t.Setenv("CONFORMIST_QUIET", "false")
 	checkValue(false)
 
 	// flag override
@@ -445,7 +445,7 @@ func TestOnUnmatched(t *testing.T) {
 	checkValue("error")
 
 	// env override
-	t.Setenv("TREELINT_ON_UNMATCHED", "debug")
+	t.Setenv("CONFORMIST_ON_UNMATCHED", "debug")
 	checkValue("debug")
 
 	// flag override
@@ -475,7 +475,7 @@ func TestTreeRoot(t *testing.T) {
 	checkValue("/foo/bar")
 
 	// env override
-	t.Setenv("TREELINT_TREE_ROOT", "/fizz/buzz")
+	t.Setenv("CONFORMIST_TREE_ROOT", "/fizz/buzz")
 	checkValue("/fizz/buzz")
 
 	// flag override
@@ -509,7 +509,7 @@ func TestTreeRootFile(t *testing.T) {
 	checkValue(filepath.Dir(v.ConfigFileUsed()), "")
 
 	workDir := filepath.Join(tempDir, "foo", "bar")
-	t.Setenv("TREELINT_WORKING_DIR", workDir)
+	t.Setenv("CONFORMIST_WORKING_DIR", workDir)
 
 	// set config value
 	// should match the lowest directory
@@ -519,7 +519,7 @@ func TestTreeRootFile(t *testing.T) {
 
 	// env override
 	// should match the directory above
-	t.Setenv("TREELINT_TREE_ROOT_FILE", "go.mod")
+	t.Setenv("CONFORMIST_TREE_ROOT_FILE", "go.mod")
 	checkValue(filepath.Join(tempDir, "foo"), "go.mod")
 
 	// flag override
@@ -554,7 +554,7 @@ func TestTreeRootCmd(t *testing.T) {
 
 	// env override
 	// should match the directory above
-	t.Setenv("TREELINT_TREE_ROOT_CMD", fmt.Sprintf("echo \"%s/foo\"", tempDir))
+	t.Setenv("CONFORMIST_TREE_ROOT_CMD", fmt.Sprintf("echo \"%s/foo\"", tempDir))
 	checkValue(filepath.Join(tempDir, "foo"))
 
 	// flag override
@@ -596,7 +596,7 @@ func TestVerbosity(t *testing.T) {
 	// checkValue(1)
 
 	// env override
-	t.Setenv("TREELINT_VERBOSE", "2")
+	t.Setenv("CONFORMIST_VERBOSE", "2")
 	checkValue(2)
 }
 
@@ -621,7 +621,7 @@ func TestWalk(t *testing.T) {
 	checkValue("git")
 
 	// env override
-	t.Setenv("TREELINT_WALK", "filesystem")
+	t.Setenv("CONFORMIST_WALK", "filesystem")
 	checkValue("filesystem")
 
 	// flag override
@@ -658,7 +658,7 @@ func TestWorkingDirectory(t *testing.T) {
 
 	// env override
 	cwd = t.TempDir()
-	t.Setenv("TREELINT_WORKING_DIR", cwd+"/buzz/..")
+	t.Setenv("CONFORMIST_WORKING_DIR", cwd+"/buzz/..")
 	checkValue(cwd)
 
 	// flag override
@@ -689,7 +689,7 @@ func TestStdin(t *testing.T) {
 	checkValues(false)
 
 	// env override
-	t.Setenv("TREELINT_STDIN", "false")
+	t.Setenv("CONFORMIST_STDIN", "false")
 	checkValues(false)
 
 	// flag override
@@ -701,7 +701,7 @@ func TestSampleConfigFile(t *testing.T) {
 	as := require.New(t)
 
 	v := viper.New()
-	v.SetConfigFile("../test/examples/treelint.toml")
+	v.SetConfigFile("../test/examples/conformist.toml")
 	as.NoError(v.ReadInConfig(), "failed to read config file")
 
 	cfg, err := config.FromViper(v)
@@ -823,4 +823,36 @@ func TestSampleConfigFile(t *testing.T) {
 	foo, ok := cfg.FormatterConfigs["foo-fmt"]
 	as.True(ok, "foo formatter not found")
 	as.Equal("foo-fmt", foo.Command)
+}
+
+// TestLegacyEnvPrefix covers the backward-compat fallback from the former
+// TREELINT_ env prefix to CONFORMIST_ (see config.NewViper). The fallback shim
+// runs eagerly inside NewViper and copies via os.Setenv, so the legacy variable
+// must be set before newViper is called.
+func TestLegacyEnvPrefix(t *testing.T) {
+	as := require.New(t)
+
+	t.Run("falls back to TREELINT_ when CONFORMIST_ is unset", func(t *testing.T) {
+		t.Setenv("TREELINT_ON_UNMATCHED", "debug")
+		// the shim's os.Setenv copy is not tracked by t.Setenv; clean it up so
+		// it does not leak into sibling tests.
+		t.Cleanup(func() { _ = os.Unsetenv("CONFORMIST_ON_UNMATCHED") })
+
+		v, _ := newViper(t)
+
+		readValue(t, v, &config.Config{}, func(cfg *config.Config) {
+			as.Equal("debug", cfg.OnUnmatched)
+		})
+	})
+
+	t.Run("CONFORMIST_ takes precedence over TREELINT_", func(t *testing.T) {
+		t.Setenv("TREELINT_ON_UNMATCHED", "debug")
+		t.Setenv("CONFORMIST_ON_UNMATCHED", "error")
+
+		v, _ := newViper(t)
+
+		readValue(t, v, &config.Config{}, func(cfg *config.Config) {
+			as.Equal("error", cfg.OnUnmatched)
+		})
+	})
 }

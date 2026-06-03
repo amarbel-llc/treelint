@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/amarbel-llc/treelint/stats"
+	"github.com/amarbel-llc/conformist/stats"
 )
 
 type StdinReader struct {
@@ -27,7 +27,7 @@ func (s StdinReader) Read(_ context.Context, files []*File) (n int, err error) {
 	}
 
 	// we attempt to preserve any file extensions as some formatters will not behave correctly without it
-	pattern := "treelint-stdin-*" + filepath.Ext(s.path)
+	pattern := "conformist-stdin-*" + filepath.Ext(s.path)
 
 	// create a temporary file to dump stdin into
 	file, err := os.CreateTemp("", pattern)

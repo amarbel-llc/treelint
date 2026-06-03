@@ -33,7 +33,7 @@ jobs:
           determinate: true
       - uses: DeterminateSystems/flakehub-cache-action@main
       # NOTE: we run `build` + `lint` rather than the full `just` default
-      # (which includes `test`). treelint inherits treefmt's integration suite,
+      # (which includes `test`). conformist inherits treefmt's integration suite,
       # which needs many external formatters on PATH that the devshell does not
       # yet provision; wiring those up is tracked separately. Build + the
       # read-only formatting gate are green and worth enforcing now.
@@ -54,7 +54,7 @@ jobs:
           determinate: true
       - uses: DeterminateSystems/flakehub-push@main
         with:
-          name: "amarbel-llc/treelint"
+          name: "amarbel-llc/conformist"
           rolling: true
           visibility: "public"
           include-output-paths: true

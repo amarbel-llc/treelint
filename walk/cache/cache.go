@@ -21,7 +21,7 @@ func Path(root string) (string, error) {
 
 	name := hex.EncodeToString(digest[:])
 
-	path, err := xdg.CacheFile(fmt.Sprintf("treelint/eval-cache/%v.db", name))
+	path, err := xdg.CacheFile(fmt.Sprintf("conformist/eval-cache/%v.db", name))
 	if err != nil {
 		return "", fmt.Errorf("could not resolve local path for the cache: %w", err)
 	}
@@ -72,7 +72,7 @@ func Remove(root string) error {
 	}
 
 	// Remove any db which might already exist.
-	// If a treelint process is currently running with a db open at the same location, it will continue to function
+	// If a conformist process is currently running with a db open at the same location, it will continue to function
 	// as normal, however, when it exits the disk space its inode was referencing will be reclaimed.
 	// This will not work on Windows if we ever support it.
 	if err = os.Remove(path); err != nil && !os.IsNotExist(err) {

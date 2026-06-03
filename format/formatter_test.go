@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/stats"
-	"github.com/amarbel-llc/treelint/test"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/stats"
+	"github.com/amarbel-llc/conformist/test"
 	"github.com/stretchr/testify/require"
 )
 

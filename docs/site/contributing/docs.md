@@ -29,7 +29,7 @@ WARNING -  The following pages exist in the docs directory, but are not included
              - index.md
 INFO    -  Documentation built in 0.26 seconds
 INFO    -  [16:22:36] Watching paths for changes: 'docs/content', 'mkdocs.yml'
-INFO    -  [16:22:36] Serving on http://127.0.0.1:8000/treelint/
+INFO    -  [16:22:36] Serving on http://127.0.0.1:8000/conformist/
 ```
 
 ## Versioning & Publication
@@ -43,9 +43,9 @@ configured to serve from.
 
     More information about versioning with [MkDocs Material] and [mike] can be found [here](https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/).
 
-treelint does not currently publish this documentation site; build it locally
+conformist does not currently publish this documentation site; build it locally
 with the commands above to preview changes. treefmt's `gh-pages.yml` publishing
-workflow was dropped during the migration to the eng conventions, so a treelint
+workflow was dropped during the migration to the eng conventions, so a conformist
 docs-deployment workflow would need to be added if the site is ever published.
 
 To preview the versions locally you can use `mike serve` instead of `mkdocs serve`.

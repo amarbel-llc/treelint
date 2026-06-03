@@ -5,19 +5,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/amarbel-llc/treelint/cmd/format"
-	_init "github.com/amarbel-llc/treelint/cmd/init"
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/stats"
+	"github.com/amarbel-llc/conformist/cmd/format"
+	_init "github.com/amarbel-llc/conformist/cmd/init"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/stats"
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 // programName is the binary's self-identification, used in usage and version
-// output. The broader treefmt -> treelint user-facing rename (TREEFMT_ env
-// prefix, treefmt.toml config filenames, docs) is tracked separately.
-const programName = "treelint"
+// output. Env prefix and config-filename backward-compat for the former
+// treelint name are handled in config.NewViper and loadConfig respectively.
+const programName = "conformist"
 
 func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 	// create a viper instance for reading in config
@@ -37,7 +37,7 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 		// Positional args are paths to format/check. Without an explicit Args
 		// validator, cobra treats the first positional as a subcommand name
 		// once subcommands (check, version) are registered, breaking
-		// `treelint <paths...>` with "unknown command". ArbitraryArgs lets
+		// `conformist <paths...>` with "unknown command". ArbitraryArgs lets
 		// non-subcommand args fall through to RunE while `check`/`version`
 		// still dispatch.
 		Args: cobra.ArbitraryArgs,
@@ -66,8 +66,8 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 
 	pfs.String(
 		"config-file", "",
-		"Load the config file from the given path (defaults to searching upwards for treelint.toml or "+
-			".treelint.toml).",
+		"Load the config file from the given path (defaults to searching upwards for conformist.toml or "+
+			".conformist.toml).",
 	)
 
 	// Root-only shortcut flags for the init / completion sub-behaviours.
@@ -75,7 +75,7 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 
 	fs.BoolP(
 		"init", "i", false,
-		"Create a treelint.toml file in the current directory.",
+		"Create a conformist.toml file in the current directory.",
 	)
 
 	fs.String(
@@ -151,7 +151,7 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 	return format.Run(v, statz, cmd, args) //nolint:wrapcheck
 }
 
-// loadConfig discovers and reads the treelint config file into viper and
+// loadConfig discovers and reads the conformist config file into viper and
 // configures logging. It assumes the working directory has already been set
 // (see changeWorkingDir) and is shared by the format and check entry points.
 func loadConfig(v *viper.Viper, cmd *cobra.Command, workingDir string) error {
@@ -165,10 +165,12 @@ func loadConfig(v *viper.Viper, cmd *cobra.Command, workingDir string) error {
 
 	// fallback to env
 	if configFile == "" {
-		configFile = os.Getenv("TREELINT_CONFIG")
+		configFile = os.Getenv("CONFORMIST_CONFIG")
 	}
 
-	filenames := []string{"treelint.toml", ".treelint.toml"}
+	// conformist.toml is preferred; treelint.toml is the legacy fallback from
+	// before the treelint -> conformist rename. Earlier entries win.
+	filenames := []string{"conformist.toml", ".conformist.toml", "treelint.toml", ".treelint.toml"}
 
 	// look in PRJ_ROOT if set
 	if prjRoot := os.Getenv("PRJ_ROOT"); configFile == "" && prjRoot != "" {
@@ -184,7 +186,7 @@ func loadConfig(v *viper.Viper, cmd *cobra.Command, workingDir string) error {
 	if err != nil {
 		cmd.SilenceUsage = true
 
-		return fmt.Errorf("failed to find treelint config file: %w", err)
+		return fmt.Errorf("failed to find conformist config file: %w", err)
 	}
 
 	log.Debugf("using config file: %s", configFile)

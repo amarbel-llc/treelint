@@ -1,4 +1,4 @@
-Require treelint
+Require conformist
 Require nano
 
 Set Shell zsh
@@ -15,11 +15,11 @@ Type "TEMP_DIR=$(mktemp -d) && cd $TEMP_DIR && clear"
 Enter
 
 Show
-Type "treelint --init"
+Type "conformist --init"
 Enter
 Sleep 2s
 
-Type "nano treelint.toml"
+Type "nano conformist.toml"
 Enter
 Sleep 5s
 

@@ -7,7 +7,7 @@ import (
 )
 
 // newVersionCmd implements the `version` subcommand mandated by
-// eng-versioning(7). treelint pins no downstream components, so it emits a
+// eng-versioning(7). conformist pins no downstream components, so it emits a
 // single self-identification line: "<name> <version>+<commit>".
 func newVersionCmd(name, version, commit string) *cobra.Command {
 	return &cobra.Command{

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/format"
-	"github.com/amarbel-llc/treelint/stats"
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/format"
+	"github.com/amarbel-llc/conformist/stats"
+	"github.com/amarbel-llc/conformist/walk"
 	"github.com/stretchr/testify/require"
 )
 

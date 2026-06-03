@@ -7,11 +7,11 @@ date: 2026-05-30
 
 ## Abstract
 
-This document specifies how treelint runs linters alongside formatters. It
+This document specifies how conformist runs linters alongside formatters. It
 defines a new `[linter.<name>]` TOML configuration section parallel to the
 existing `[formatter.<name>]` section, two execution modes (**repair**, which
 writes fixes to the working tree, and **check**, which is strictly read-only),
-and a `treelint check` subcommand that verifies a tree without modifying it.
+and a `conformist check` subcommand that verifies a tree without modifying it.
 Check mode for tools that only know how to rewrite files in place is realized
 by copying matched files into a private sandbox, running the tool there, and
 diffing the result — so source files are never written during a check, even on
@@ -19,7 +19,7 @@ a read-only tree.
 
 ## Introduction
 
-treelint is a clean copy of treefmt v2.5.0 (the formatter multiplexer). treefmt
+conformist is a clean copy of treefmt v2.5.0 (the formatter multiplexer). treefmt
 supports only *formatters*: tools invoked as `<command> [options] [...files]`
 that rewrite files in place. It has no first-class concept of a *linter* (a tool
 that inspects files and reports problems without necessarily rewriting them) and
@@ -40,7 +40,7 @@ this specification removes:
    [treefmt#11]).
 
 This specification defines the configuration interface, the CLI contract, and
-the execution semantics needed for treelint to run linters and to verify a tree
+the execution semantics needed for conformist to run linters and to verify a tree
 without mutating it. It does not specify result caching, which is left to a
 future revision.
 
@@ -54,7 +54,7 @@ interpreted as described in RFC 2119.
 
 ### 1. Terminology
 
-- **Tool** — an external executable invoked by treelint, configured under either
+- **Tool** — an external executable invoked by conformist, configured under either
   `[formatter.<name>]` or `[linter.<name>]`.
 - **Formatter** — a tool whose primary action rewrites files in place to
   normalize their formatting. Configured under `[formatter.<name>]`.
@@ -72,15 +72,15 @@ interpreted as described in RFC 2119.
 
 ### 2. Execution Modes
 
-treelint operates in exactly one of two modes per invocation.
+conformist operates in exactly one of two modes per invocation.
 
-- In **repair mode**, treelint runs each matched tool's repair action. Repair
+- In **repair mode**, conformist runs each matched tool's repair action. Repair
   mode MAY write to the working tree.
-- In **check mode**, treelint runs each matched tool's check action. Check mode
+- In **check mode**, conformist runs each matched tool's check action. Check mode
   MUST NOT write to any file inside the configured tree root.
 
-The default invocation (`treelint [paths...]`) runs in repair mode. The
-`treelint check [paths...]` subcommand (Section 5) runs in check mode.
+The default invocation (`conformist [paths...]`) runs in repair mode. The
+`conformist check [paths...]` subcommand (Section 5) runs in check mode.
 
 The section a tool is configured under determines which action its `command`
 field denotes:
@@ -109,19 +109,19 @@ expression `^[a-zA-Z0-9_-]+$`.
 | `check-options` | array of string | MAY | Arguments for `check-command`. |
 | `sandbox` | boolean | MAY | If `true`, force sandbox execution (Section 6) even when a native check action exists. Default `false`. |
 
-A formatter's `command` (repair action) MUST conform to the treelint formatter
+A formatter's `command` (repair action) MUST conform to the conformist formatter
 specification (files passed as arguments; writes back only on change; non-zero
 exit on error).
 
-In check mode, treelint determines a formatter's check action as follows:
+In check mode, conformist determines a formatter's check action as follows:
 
 1. If `sandbox` is `true`, the formatter is checked via the sandbox strategy
    (Section 6).
-2. Otherwise, if `check-command` is set, treelint MUST run
+2. Otherwise, if `check-command` is set, conformist MUST run
    `check-command [check-options] [...files]` directly against the working-tree
    files. That command MUST NOT write to the files and MUST exit non-zero if and
    only if at least one of the passed files is not conformant.
-3. Otherwise, treelint MUST check the formatter via the sandbox strategy
+3. Otherwise, conformist MUST check the formatter via the sandbox strategy
    (Section 6) using its repair `command`/`options`.
 
 ### 4. The `[linter.<name>]` Section
@@ -146,24 +146,24 @@ file it is passed. It MUST exit `0` when all passed files are clean and MUST exi
 non-zero when at least one passed file has a finding. It SHOULD print diagnostics
 to stderr.
 
-In repair mode, treelint determines a linter's repair action as follows:
+In repair mode, conformist determines a linter's repair action as follows:
 
-1. If `repair-command` is set, treelint MUST run
+1. If `repair-command` is set, conformist MUST run
    `repair-command [repair-options] [...files]` against the working-tree files.
    This action MAY write to those files.
-2. Otherwise, the linter has no repair action and treelint MUST treat it as a
+2. Otherwise, the linter has no repair action and conformist MUST treat it as a
    no-op in repair mode (the linter is not run; no finding is reported).
 
-In check mode, treelint MUST run a linter's `command [options] [...files]`
+In check mode, conformist MUST run a linter's `command [options] [...files]`
 against the working-tree files (no sandbox is used unless `sandbox` semantics are
 later extended to linters).
 
 ### 5. The `check` Subcommand
 
-treelint MUST provide a `check` subcommand:
+conformist MUST provide a `check` subcommand:
 
 ```
-treelint check [flags] [paths...]
+conformist check [flags] [paths...]
 ```
 
 The subcommand MUST honor the same configuration discovery, tree-root
@@ -185,13 +185,13 @@ forwarded to stderr. The exit code is defined in Section 7.
 
 Flag requirements:
 
-- `treelint check` MUST accept the file/path selection flags accepted by the
+- `conformist check` MUST accept the file/path selection flags accepted by the
   default invocation (e.g. `--tree-root`, `--walk`, `--excludes`,
   `--config-file`).
-- `treelint check` MAY accept `--formatters` and a `--linters` flag to restrict
+- `conformist check` MAY accept `--formatters` and a `--linters` flag to restrict
   the evaluated tool sets. When neither is given, all configured tools of both
   kinds are eligible.
-- `treelint check` MUST NOT honor flags whose only effect is to write to the
+- `conformist check` MUST NOT honor flags whose only effect is to write to the
   tree (e.g. it MUST ignore or reject `--fail-on-change`, whose semantics are
   subsumed by the check exit code).
 
@@ -201,20 +201,20 @@ This strategy synthesizes a check action for a fix-only formatter (Section 3,
 case 3, and the `sandbox = true` case). For a given formatter and its set of
 matched files `F = {f1, …, fn}`:
 
-1. treelint MUST create a private temporary directory `D` with permissions that
+1. conformist MUST create a private temporary directory `D` with permissions that
    deny access to other users (mode `0700`).
-2. For each `fi`, treelint MUST copy the file's contents and mode bits into `D`,
+2. For each `fi`, conformist MUST copy the file's contents and mode bits into `D`,
    preserving `fi`'s path relative to the tree root. Symbolic links MUST be
-   copied as their resolved regular-file contents; treelint MUST NOT copy or
+   copied as their resolved regular-file contents; conformist MUST NOT copy or
    follow a link whose target resolves outside the tree root, and MUST treat such
    a file as a hard error (Section 7, error class).
-3. treelint MUST run the formatter's repair `command [options]` with the copied
+3. conformist MUST run the formatter's repair `command [options]` with the copied
    paths in `D` as the file arguments, with the working directory set to `D`.
-4. For each `fi`, treelint MUST compare the post-run copy in `D` against the
+4. For each `fi`, conformist MUST compare the post-run copy in `D` against the
    original `fi` by content. If they differ, `fi` is a finding for this
    formatter. Comparison MUST be by content (e.g. byte length and a content
    hash), not by modification time.
-5. treelint MUST remove `D` and its contents before the invocation exits,
+5. conformist MUST remove `D` and its contents before the invocation exits,
    including on error.
 6. At no point MUST this strategy write to, rename, or delete any path outside
    `D`.
@@ -225,7 +225,7 @@ writes when no change is needed, MAY produce spurious findings.
 
 ### 7. Exit Codes
 
-The `treelint check` subcommand MUST use the following exit codes:
+The `conformist check` subcommand MUST use the following exit codes:
 
 | Code | Condition |
 |------|-----------|
@@ -233,11 +233,11 @@ The `treelint check` subcommand MUST use the following exit codes:
 | `1` | At least one finding was produced and no error class condition occurred. |
 | `2` | An error class condition occurred: a configured tool's executable was not found, the configuration was invalid, a sandbox operation failed, or a tool exited in a way that indicates operational failure rather than a finding. |
 
-When both findings (`1`) and an error class condition (`2`) occur, treelint MUST
+When both findings (`1`) and an error class condition (`2`) occur, conformist MUST
 exit `2`.
 
 A linter's non-zero exit is interpreted as *findings* (`1`), not an error, unless
-treelint can distinguish an operational failure (for example, the executable is
+conformist can distinguish an operational failure (for example, the executable is
 missing, which is `2`). Implementations SHOULD document any tool-specific exit
 code interpretation they add.
 
@@ -246,13 +246,13 @@ code interpretation they add.
 Valid configuration combining formatters and linters:
 
 ```toml
-# Fix-only formatter: no native check, so `treelint check` sandboxes + diffs it.
+# Fix-only formatter: no native check, so `conformist check` sandboxes + diffs it.
 [formatter.gofmt]
 command = "gofmt"
 options = ["-w"]
 includes = ["*.go"]
 
-# Formatter with a native read-only check used directly by `treelint check`.
+# Formatter with a native read-only check used directly by `conformist check`.
 [formatter.prettier]
 command = "prettier"
 options = ["--write"]
@@ -279,15 +279,15 @@ Invocations:
 ```
 # Repair mode (default): gofmt -w, prettier --write, ruff check --fix.
 # shellcheck does not run (no repair action).
-treelint
+conformist
 
 # Check mode: read-only. gofmt is sandboxed and diffed; prettier --check,
 # shellcheck, and ruff check run against the working tree. Exits 1 if any
 # file needs formatting or any linter reports a problem; 0 if clean.
-treelint check
+conformist check
 
 # Check only Go and shell, restricted by tool name.
-treelint check --formatters gofmt --linters shellcheck
+conformist check --formatters gofmt --linters shellcheck
 ```
 
 Invalid configuration (rejected at load, exit `2`):
@@ -307,11 +307,11 @@ includes = ["*.x"]
 ## Security Considerations
 
 - **Arbitrary command execution.** Both `[formatter.<name>]` and
-  `[linter.<name>]` name executables that treelint runs with the invoking user's
-  privileges. A treelint configuration file is therefore as trust-sensitive as a
+  `[linter.<name>]` name executables that conformist runs with the invoking user's
+  privileges. A conformist configuration file is therefore as trust-sensitive as a
   shell script. Implementations MUST resolve executables via `PATH` lookup at the
   tree root and SHOULD make the resolved executable path visible in verbose logs.
-  Consumers MUST NOT run treelint against a configuration from an untrusted
+  Consumers MUST NOT run conformist against a configuration from an untrusted
   source without review.
 - **Sandbox isolation.** The sandbox directory MUST be created with mode `0700`
   to prevent other local users from reading copied source or injecting files
@@ -335,12 +335,12 @@ includes = ["*.x"]
 ## Conformance Testing
 
 Conformance tests for this specification live in
-`docs/rfcs/../../zz-tests_bats/` (the treelint repository's `zz-tests_bats/`
+`docs/rfcs/../../zz-tests_bats/` (the conformist repository's `zz-tests_bats/`
 directory).
 
 Tests use binary injection via `bats-emo`:
 
-    require_bin TREELINT treelint
+    require_bin CONFORMIST conformist
 
 This keeps the suite portable across implementations of this specification (for
 example, a future rewrite can run the same tests by injecting its own binary).
@@ -349,7 +349,7 @@ example, a future rewrite can run the same tests by injecting its own binary).
 
 | Requirement | Test File | Description |
 |-------------|-----------|-------------|
-| Section 2, check mode MUST NOT write | `test_check_readonly.bats` | Run `treelint check` against a tree whose files are made read-only; assert exit reflects findings and no source file is modified. |
+| Section 2, check mode MUST NOT write | `test_check_readonly.bats` | Run `conformist check` against a tree whose files are made read-only; assert exit reflects findings and no source file is modified. |
 | Section 3, fix-only formatter check | `test_check_sandbox.bats` | A `gofmt -w` formatter with no `check-command`; assert a misformatted file yields a finding and is left byte-identical. |
 | Section 3, native `check-command` | `test_check_native.bats` | A formatter with `check-command`; assert the check command (not the repair command) is invoked and the source is untouched. |
 | Section 4, `[linter.<name>]` schema | `test_linter_config.bats` | Valid linter config loads; invalid name / missing command / missing includes each exit `2`. |
@@ -370,10 +370,10 @@ example, a future rewrite can run the same tests by injecting its own binary).
   configuration field, so an unknown `[linter.*]` table is silently ignored by
   older binaries. Operators who share a configuration across both tools SHOULD
   be aware that linters will simply not run under treefmt.
-- **Config discovery names.** This document specifies the `treelint` command and
+- **Config discovery names.** This document specifies the `conformist` command and
   the `[linter.<name>]` / `[formatter.<name>]` tables. The config file names
   (`treefmt.toml` / `.treefmt.toml`), the `TREEFMT_`-prefixed environment
-  variables, and the `treelint`-vs-`treefmt` binary name are governed by a
+  variables, and the `conformist`-vs-`treefmt` binary name are governed by a
   separate user-facing rename and are out of scope here; until that rename lands,
   the treefmt-era names apply.
 - **Versioning.** Backwards-incompatible changes to the `[linter.<name>]` schema
@@ -385,7 +385,7 @@ example, a future rewrite can run the same tests by injecting its own binary).
 
 - [RFC 2119] Bradner, S., "Key words for use in RFCs to Indicate Requirement
   Levels", BCP 14, RFC 2119, March 1997.
-- [treelint formatter specification] `docs/site/reference/formatter-spec.md` —
+- [conformist formatter specification] `docs/site/reference/formatter-spec.md` —
   the rules a formatter's repair action MUST satisfy (files-as-arguments,
   write-only-on-change, non-zero-on-error).
 

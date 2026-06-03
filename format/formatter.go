@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/walk"
 	"github.com/charmbracelet/log"
 	"github.com/gobwas/glob"
 	"mvdan.cc/sh/v3/expand"

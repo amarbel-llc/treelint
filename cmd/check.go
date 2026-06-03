@@ -10,16 +10,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/amarbel-llc/treelint/config"
-	"github.com/amarbel-llc/treelint/format"
-	"github.com/amarbel-llc/treelint/stats"
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/conformist/format"
+	"github.com/amarbel-llc/conformist/stats"
+	"github.com/amarbel-llc/conformist/walk"
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// ErrCheckFindings indicates `treelint check` found at least one finding
+// ErrCheckFindings indicates `conformist check` found at least one finding
 // (RFC 0001 §7, exit code 1). ErrCheckOperational indicates an operational
 // failure such as a missing executable or invalid config (exit code 2).
 var (

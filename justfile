@@ -1,4 +1,4 @@
-# treelint justfile. Conventions: eng-design_patterns-justfile(7),
+# conformist justfile. Conventions: eng-design_patterns-justfile(7),
 # eng-versioning(7). `default` runs the full local CI lane.
 
 default: validate lint build test
@@ -34,7 +34,7 @@ build-gomod2nix:
 # Out-of-nix go build for a fast inner loop. Version/commit stay dev/unknown
 # here; the nix build injects the real values (eng-versioning(7)).
 build-go: build-gomod2nix
-    nix develop --command go build -o build/treelint .
+    nix develop --command go build -o build/conformist .
 
 build-nix:
     nix build --show-trace
@@ -63,14 +63,14 @@ update-go: && build-gomod2nix
 
 [group("maintenance")]
 bump-version new_version:
-    sed -E -i "s/^(export TREELINT_VERSION)=.*/\1={{ new_version }}/" version.env
+    sed -E -i "s/^(export CONFORMIST_VERSION)=.*/\1={{ new_version }}/" version.env
 
 [group("maintenance")]
 tag message:
     #!/usr/bin/env bash
     set -euo pipefail
     . version.env
-    tag="v${TREELINT_VERSION:?missing TREELINT_VERSION in version.env}"
+    tag="v${CONFORMIST_VERSION:?missing CONFORMIST_VERSION in version.env}"
     git tag -s -m "{{ message }}" "$tag"
     echo "Created tag: $tag"
     git push origin "$tag"

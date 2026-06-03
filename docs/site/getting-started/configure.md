@@ -1,6 +1,6 @@
 # Configure
 
-`treelint`'s behaviour can be influenced in one of three ways:
+`conformist`'s behaviour can be influenced in one of three ways:
 
 1. Process flags and arguments
 2. Environment variables
@@ -17,19 +17,19 @@ precedence and values in the configuration file having the lowest.
 
 ## Config File
 
-The `treelint` configuration file is a mixture of global options and formatter sections.
+The `conformist` configuration file is a mixture of global options and formatter sections.
 
-It should be named `treelint.toml` or `.treelint.toml`, and typically resides at the root of a repository.
+It should be named `conformist.toml` or `.conformist.toml`, and typically resides at the root of a repository.
 
-When executing `treelint` within a subdirectory, `treelint` will search upwards in the directory structure, looking for
-`treelint.toml` or `.treelint.toml`.
+When executing `conformist` within a subdirectory, `conformist` will search upwards in the directory structure, looking for
+`conformist.toml` or `.conformist.toml`.
 You can change this behaviour using the [config-file](#config-file_1) options
 
 !!! tip
 
-    When starting a new project you can generate an initial config file using `treelint --init`
+    When starting a new project you can generate an initial config file using `conformist --init`
 
-```nix title="treelint.toml"
+```nix title="conformist.toml"
 --8<-- "cmd/init/init.toml"
 ```
 
@@ -42,13 +42,13 @@ Do not exit with error if a configured formatter is missing.
 === "Flag"
 
     ```console
-    treelint --allow-missing-formatter true
+    conformist --allow-missing-formatter true
     ```
 
 === "Env"
 
     ```console
-    TREELINT_ALLOW_MISSING_FORMATTER=true treelint
+    CONFORMIST_ALLOW_MISSING_FORMATTER=true conformist
     ```
 
 === "Config"
@@ -59,19 +59,19 @@ Do not exit with error if a configured formatter is missing.
 
 ### `ci`
 
-Runs treelint in a CI mode, enabling [no-cache](#no-cache), [fail-on-change](#fail-on-change) and adjusting some other settings best suited to a
+Runs conformist in a CI mode, enabling [no-cache](#no-cache), [fail-on-change](#fail-on-change) and adjusting some other settings best suited to a
 continuous integration environment.
 
 === "Flag"
 
     ```console
-    treelint --ci
+    conformist --ci
     ```
 
 === "Env"
 
     ```console
-    TREELINT_CI=true treelint
+    CONFORMIST_CI=true conformist
     ```
 
 ### `clear-cache`
@@ -81,14 +81,14 @@ Reset the evaluation cache. Use in case the cache is not precise enough.
 === "Flag"
 
     ```console
-    treelint -c
-    treelint --clear-cache
+    conformist -c
+    conformist --clear-cache
     ```
 
 === "Env"
 
     ```console
-    TREELINT_CLEAR_CACHE=true treelint
+    CONFORMIST_CLEAR_CACHE=true conformist
     ```
 
 ### `config-file`
@@ -96,13 +96,13 @@ Reset the evaluation cache. Use in case the cache is not precise enough.
 === "Flag"
 
     ```console
-    treelint --config-file /tmp/treelint.toml
+    conformist --config-file /tmp/conformist.toml
     ```
 
 === "Env"
 
     ```console
-    TREELINT_CONFIG=/tmp/treelint.toml treelint
+    CONFORMIST_CONFIG=/tmp/conformist.toml conformist
     ```
 
 ### `cpu-profile`
@@ -112,13 +112,13 @@ The file into which a [pprof](https://github.com/google/pprof) cpu profile will 
 === "Flag"
 
     ```console
-    treelint --cpu-profile ./cpu.pprof
+    conformist --cpu-profile ./cpu.pprof
     ```
 
 === "Env"
 
     ```console
-    TREELINT_CPU_PROFILE=./cpu.pprof treelint
+    CONFORMIST_CPU_PROFILE=./cpu.pprof conformist
     ```
 
 === "Config"
@@ -134,13 +134,13 @@ An optional list of [glob patterns](#glob-patterns-format) used to exclude files
 === "Flag"
 
     ```console
-    treelint --excludes *.toml,*.php,README
+    conformist --excludes *.toml,*.php,README
     ```
 
 === "Env"
 
     ```console
-    TREELINT_EXCLUDES="*.toml,*.php,README" treelint
+    CONFORMIST_EXCLUDES="*.toml,*.php,README" conformist
     ```
 
 === "Config"
@@ -156,13 +156,13 @@ Exit with error if any changes were made during execution.
 === "Flag"
 
     ```console
-    treelint --fail-on-change true
+    conformist --fail-on-change true
     ```
 
 === "Env"
 
     ```console
-    TREELINT_FAIL_ON_CHANGE=true treelint
+    CONFORMIST_FAIL_ON_CHANGE=true conformist
     ```
 
 === "Config"
@@ -179,14 +179,14 @@ Defaults to all configured formatters.
 === "Flag"
 
     ```console
-    treelint -f go,toml,haskell
-    treelint --formatters go,toml,haskell
+    conformist -f go,toml,haskell
+    conformist --formatters go,toml,haskell
     ```
 
 === "Env"
 
     ```console
-    TREELINT_FORMATTERS=go,toml,haskell treelint
+    CONFORMIST_FORMATTERS=go,toml,haskell conformist
     ```
 
 === "Config"
@@ -217,13 +217,13 @@ Ignore the evaluation cache entirely. Useful for CI.
 === "Flag"
 
     ```console
-    treelint --no-cache
+    conformist --no-cache
     ```
 
 === "Env"
 
     ```console
-    TREELINT_NO_CACHE=true treelint
+    CONFORMIST_NO_CACHE=true conformist
     ```
 
 ### `on-unmatched`
@@ -238,14 +238,14 @@ Possible values are `<debug|info|warn|error|fatal>`.
 === "Flag"
 
     ```console
-    treelint -u debug
-    treelint --on-unmatched debug
+    conformist -u debug
+    conformist --on-unmatched debug
     ```
 
 === "Env"
 
     ```console
-    TREELINT_ON_UNMACTHED=info treelint
+    CONFORMIST_ON_UNMACTHED=info conformist
     ```
 
 === "Config"
@@ -261,13 +261,13 @@ Suppress all output except for errors.
 === "Flag"
 
     ```console
-    treelint --quiet
+    conformist --quiet
     ```
 
 === "Env"
 
     ```console
-    TREELINT_QUIET=true treelint
+    CONFORMIST_QUIET=true conformist
     ```
 
 ### `stdin`
@@ -280,24 +280,24 @@ You must provide a single path argument, the value of which is used to match aga
 === "Flag"
 
     ```console
-    cat ../test.go | treelint --stdin foo.go
+    cat ../test.go | conformist --stdin foo.go
     ```
 
 ### `tree-root`
 
-The root directory from which treelint will start walking the filesystem.
+The root directory from which conformist will start walking the filesystem.
 Defaults to the directory containing the config file.
 
 === "Flag"
 
     ```console
-    treelint --tree-root /tmp/foo
+    conformist --tree-root /tmp/foo
     ```
 
 === "Env"
 
     ```console
-    TREELINT_TREE_ROOT=/tmp/foo treelint
+    CONFORMIST_TREE_ROOT=/tmp/foo conformist
     ```
 
 === "Config"
@@ -320,7 +320,7 @@ If you wish to pass arguments containing quotes, you should use nested quotes e.
     If [walk](#walk) is set to `jujutsu` and no tree root option has been defined, `tree-root-cmd` will be defaulted to
     `jj workspace root`.
 
-    if [walk](#walk) is set to `auto` (the default), `treelint` will check if the [working directory](#working-dir) is
+    if [walk](#walk) is set to `auto` (the default), `conformist` will check if the [working directory](#working-dir) is
     inside a git worktree. If it is, `tree-root-cmd` will be defaulted as described above for `git`. If the [working
     directory](#working-dir) is inside a jujutsu worktree the `tree-root-cmd` will be defaulted as described above for
     `jujutsu`.
@@ -328,13 +328,13 @@ If you wish to pass arguments containing quotes, you should use nested quotes e.
 === "Flag"
 
     ```console
-    treelint --tree-root-cmd "git rev-parse --show-toplevel"
+    conformist --tree-root-cmd "git rev-parse --show-toplevel"
     ```
 
 === "Env"
 
     ```console
-    TREELINT_TREE_ROOT_CMD="git rev-parse --show-toplevel" treelint
+    CONFORMIST_TREE_ROOT_CMD="git rev-parse --show-toplevel" conformist
     ```
 
 === "Config"
@@ -350,13 +350,13 @@ File to search for to find the tree root (if `tree-root` is not set)
 === "Flag"
 
     ```console
-    treelint --tree-root-file .git/config
+    conformist --tree-root-file .git/config
     ```
 
 === "Env"
 
     ```console
-    TREELINT_TREE_ROOT_FILE=.git/config treelint
+    CONFORMIST_TREE_ROOT_FILE=.git/config conformist
     ```
 
 === "Config"
@@ -378,13 +378,13 @@ Set the verbosity level of logs:
     The number of `v`'s passed matches the level set.
 
     ```console
-    treelint -vv
+    conformist -vv
     ```
 
 === "Env"
 
     ```console
-    TREELINT_VERBOSE=1 treelint
+    CONFORMIST_VERBOSE=1 conformist
     ```
 
 === "Config"
@@ -401,13 +401,13 @@ Currently, we support 'auto', 'git', 'jujutsu' or 'filesystem'
 === "Flag"
 
     ```console
-    treelint --walk filesystem
+    conformist --walk filesystem
     ```
 
 === "Env"
 
     ```console
-    TREELINT_WALK=filesystem treelint
+    CONFORMIST_WALK=filesystem conformist
     ```
 
 === "Config"
@@ -418,24 +418,24 @@ Currently, we support 'auto', 'git', 'jujutsu' or 'filesystem'
 
 ### `working-dir`
 
-Run as if `treelint` was started in the specified working directory instead of the current working directory.
+Run as if `conformist` was started in the specified working directory instead of the current working directory.
 
 === "Flag"
 
     ```console
-    treelint -C /tmp/foo
-    treelint --working-dir /tmp/foo
+    conformist -C /tmp/foo
+    conformist --working-dir /tmp/foo
     ```
 
 === "Env"
 
     ```console
-    TREELINT_WORKING_DIR=/tmp/foo treelint
+    CONFORMIST_WORKING_DIR=/tmp/foo conformist
     ```
 
 ## Formatter Options
 
-Formatters are configured using a [table](https://toml.io/en/v1.0.0#table) entry in `treelint.toml` of the form
+Formatters are configured using a [table](https://toml.io/en/v1.0.0#table) entry in `conformist.toml` of the form
 `[formatter.<name>]`:
 
 ```toml
@@ -474,21 +474,21 @@ Influences the order of execution. Greater precedence is given to lower numbers,
 
 ### `no-positional-arg-support`
 
-If `true`, `treelint` will invoke the formatter with no more than 1 file at a time.
+If `true`, `conformist` will invoke the formatter with no more than 1 file at a time.
 
 Enable this if the formatter can only format 1 file at a time (a violation of
 [rule 1 of the formatter spec](https://treefmt.com/latest/reference/formatter-spec/#1-files-passed-as-arguments)).
 
 ## Same file, multiple formatters?
 
-For each file, `treelint` determines a list of formatters based on the configured `includes` / `excludes` rules. This list is
+For each file, `conformist` determines a list of formatters based on the configured `includes` / `excludes` rules. This list is
 then sorted, first by priority (lower the value, higher the precedence) and secondly by formatter name (lexicographically).
 
 The resultant sequence of formatters is used to create a batch key, and similarly matched files get added to that batch
 until it is full, at which point the files are passed to each formatter in turn.
 
-This means that `treelint` **guarantees only one formatter will be operating on a given file at any point in time**.
-Another consequence is that formatting is deterministic for a given file and a given `treelint` configuration.
+This means that `conformist` **guarantees only one formatter will be operating on a given file at any point in time**.
+Another consequence is that formatting is deterministic for a given file and a given `conformist` configuration.
 
 By setting the priority fields appropriately, you can control the order in which those formatters are applied for any
 files they _both happen to match on_.

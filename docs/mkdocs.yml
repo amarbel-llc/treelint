@@ -1,12 +1,12 @@
 # Project info
-site_name: Treelint
-site_url: https://github.com/amarbel-llc/treelint
+site_name: Conformist
+site_url: https://github.com/amarbel-llc/conformist
 site_description: >-
     The linter and formatter multiplexer.
 
 # Repository
-repo_name: amarbel-llc/treelint
-repo_url: https://github.com/amarbel-llc/treelint
+repo_name: amarbel-llc/conformist
+repo_url: https://github.com/amarbel-llc/conformist
 
 # Copyright
 copyright: >-
@@ -72,7 +72,7 @@ extra:
         provider: mike
     social:
         - icon: fontawesome/brands/github
-          link: https://github.com/amarbel-llc/treelint
+          link: https://github.com/amarbel-llc/conformist
 
 extra_css:
     - stylesheets/extra.css

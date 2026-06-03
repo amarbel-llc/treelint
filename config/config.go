@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amarbel-llc/treelint/git"
-	"github.com/amarbel-llc/treelint/jujutsu"
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/git"
+	"github.com/amarbel-llc/conformist/jujutsu"
+	"github.com/amarbel-llc/conformist/walk"
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
 	"github.com/spf13/pflag"
@@ -68,7 +68,7 @@ type Formatter struct {
 	// [rule 1]: docs/site/reference/formatter-spec.md#1-files-passed-as-arguments
 	NoPositionalArgSupport *bool `mapstructure:"no-positional-arg-support" toml:"no-positional-arg-support"`
 	// CheckCommand is an optional native read-only check invocation used by
-	// `treelint check` instead of the sandbox-and-diff strategy (RFC 0001 §3).
+	// `conformist check` instead of the sandbox-and-diff strategy (RFC 0001 §3).
 	CheckCommand string `mapstructure:"check-command,omitempty" toml:"check-command,omitempty"`
 	// CheckOptions are the args passed to CheckCommand.
 	CheckOptions []string `mapstructure:"check-options,omitempty" toml:"check-options,omitempty"`
@@ -109,41 +109,41 @@ type Linter struct {
 func SetFlags(fs *pflag.FlagSet) {
 	fs.Bool(
 		"allow-missing-formatter", false,
-		"Do not exit with error if a configured formatter is missing. (env $TREELINT_ALLOW_MISSING_FORMATTER)",
+		"Do not exit with error if a configured formatter is missing. (env $CONFORMIST_ALLOW_MISSING_FORMATTER)",
 	)
 	fs.Bool(
 		"ci", false,
-		"Runs treelint in a CI mode, enabling --no-cache, --fail-on-change and adjusting some other settings "+
-			"best suited to a CI use case. (env $TREELINT_CI)",
+		"Runs conformist in a CI mode, enabling --no-cache, --fail-on-change and adjusting some other settings "+
+			"best suited to a CI use case. (env $CONFORMIST_CI)",
 	)
 	fs.BoolP(
 		"clear-cache", "c", false,
-		"Reset the evaluation cache. Use in case the cache is not precise enough. (env $TREELINT_CLEAR_CACHE)",
+		"Reset the evaluation cache. Use in case the cache is not precise enough. (env $CONFORMIST_CLEAR_CACHE)",
 	)
 	fs.String(
 		"cpu-profile", "",
-		"The file into which a cpu profile will be written. (env $TREELINT_CPU_PROFILE)",
+		"The file into which a cpu profile will be written. (env $CONFORMIST_CPU_PROFILE)",
 	)
 	fs.StringSlice(
 		"excludes", nil,
-		"Exclude files or directories matching the specified globs. (env $TREELINT_EXCLUDES)",
+		"Exclude files or directories matching the specified globs. (env $CONFORMIST_EXCLUDES)",
 	)
 	fs.Bool(
 		"fail-on-change", false,
-		"Exit with error if any changes were made. Useful for CI. (env $TREELINT_FAIL_ON_CHANGE)",
+		"Exit with error if any changes were made. Useful for CI. (env $CONFORMIST_FAIL_ON_CHANGE)",
 	)
 	fs.StringSliceP(
 		"formatters", "f", nil,
-		"Specify formatters to apply. Defaults to all configured formatters. (env $TREELINT_FORMATTERS)",
+		"Specify formatters to apply. Defaults to all configured formatters. (env $CONFORMIST_FORMATTERS)",
 	)
 	fs.Bool(
 		"no-cache", false,
-		"Ignore the evaluation cache entirely. Useful for CI. (env $TREELINT_NO_CACHE)",
+		"Ignore the evaluation cache entirely. Useful for CI. (env $CONFORMIST_NO_CACHE)",
 	)
 	fs.StringP(
 		"on-unmatched", "u", "info",
 		"Log paths that did not match any formatters at the specified log level. Possible values are "+
-			"<debug|info|warn|error|fatal>. (env $TREELINT_ON_UNMATCHED)",
+			"<debug|info|warn|error|fatal>. (env $CONFORMIST_ON_UNMATCHED)",
 	)
 	fs.Bool(
 		"stdin", false,
@@ -151,61 +151,102 @@ func SetFlags(fs *pflag.FlagSet) {
 	)
 	fs.String(
 		"tree-root", "",
-		"The root directory from which treelint will start walking the filesystem. "+
+		"The root directory from which conformist will start walking the filesystem. "+
 			"Defaults to the root of the current git or jujutsu worktree. If not in a git or jujutsu repo, defaults to the "+
-			"directory containing the config file. (env $TREELINT_TREE_ROOT)",
+			"directory containing the config file. (env $CONFORMIST_TREE_ROOT)",
 	)
 	fs.String(
 		"tree-root-cmd", "",
 		"Command to run to find the tree root. It is parsed using shlex, to allow quoting arguments that "+
 			"contain whitespace. If you wish to pass arguments containing quotes, you should use nested quotes "+
-			"e.g. \"'\" or '\"'. (env $TREELINT_TREE_ROOT_CMD)",
+			"e.g. \"'\" or '\"'. (env $CONFORMIST_TREE_ROOT_CMD)",
 	)
 	fs.String(
 		"tree-root-file", "",
-		"File to search for to find the tree root. (env $TREELINT_TREE_ROOT_FILE)",
+		"File to search for to find the tree root. (env $CONFORMIST_TREE_ROOT_FILE)",
 	)
 	fs.CountP(
 		"verbose", "v",
-		"Set the verbosity of logs e.g. -vv. (env $TREELINT_VERBOSE)",
+		"Set the verbosity of logs e.g. -vv. (env $CONFORMIST_VERBOSE)",
 	)
 	fs.BoolP(
-		"quiet", "q", false, "Disable all logs except errors. (env $TREELINT_QUIET)",
+		"quiet", "q", false, "Disable all logs except errors. (env $CONFORMIST_QUIET)",
 	)
 	fs.String(
 		"walk", "auto",
 		"The method used to traverse the files within the tree root. Currently supports "+
-			"<auto|git|jujutsu|filesystem>. (env $TREELINT_WALK)",
+			"<auto|git|jujutsu|filesystem>. (env $CONFORMIST_WALK)",
 	)
 	fs.StringP(
 		"working-dir", "C", ".",
-		"Run as if treelint was started in the specified working directory instead of the current working "+
-			"directory. (env $TREELINT_WORKING_DIR)",
+		"Run as if conformist was started in the specified working directory instead of the current working "+
+			"directory. (env $CONFORMIST_WORKING_DIR)",
 	)
 }
 
 // NewViper creates a Viper instance pre-configured with the following options:
-// * TOML config type
-// * automatic env enabled
-// * `TREELINT_` env prefix for environment variables
-// * replacement of `-` and `.` with `_` when mapping flags to env e.g. `global.excludes` => `TREELINT_GLOBAL_EXCLUDES`.
+//   - TOML config type
+//   - automatic env enabled
+//   - `CONFORMIST_` env prefix for environment variables, falling back to the
+//     legacy `TREELINT_` prefix when the `CONFORMIST_` equivalent is unset
+//   - replacement of `-` and `.` with `_` when mapping flags to env e.g. `global.excludes` => `CONFORMIST_GLOBAL_EXCLUDES`.
 func NewViper() (*viper.Viper, error) {
 	v := viper.New()
 
 	// Enforce toml (may open this up to other formats in the future)
 	v.SetConfigType("toml")
 
+	// Backward-compat: honour the legacy TREELINT_ env prefix when the
+	// CONFORMIST_ equivalent is unset, so existing TREELINT_* environment
+	// variables keep working after the treelint -> conformist rename.
+	if err := applyLegacyEnvPrefix(); err != nil {
+		return nil, err
+	}
+
 	// Allow env overrides for config and flags.
-	v.SetEnvPrefix("treelint")
+	v.SetEnvPrefix("conformist")
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
-	// unset some env variables that we don't want automatically applied
-	if err := os.Unsetenv("TREELINT_STDIN"); err != nil {
-		return nil, fmt.Errorf("failed to unset TREELINT_STDIN: %w", err)
+	// unset some env variables that we don't want automatically applied, under
+	// both the current and legacy prefixes
+	for _, name := range []string{"CONFORMIST_STDIN", "TREELINT_STDIN"} {
+		if err := os.Unsetenv(name); err != nil {
+			return nil, fmt.Errorf("failed to unset %s: %w", name, err)
+		}
 	}
 
 	return v, nil
+}
+
+// applyLegacyEnvPrefix copies any TREELINT_<suffix> environment variable to
+// CONFORMIST_<suffix> when the latter is unset, preserving support for the
+// pre-rename env prefix. The current CONFORMIST_ prefix always takes precedence.
+func applyLegacyEnvPrefix() error {
+	const oldPrefix, newPrefix = "TREELINT_", "CONFORMIST_"
+
+	for _, kv := range os.Environ() {
+		name, value, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+
+		suffix, ok := strings.CutPrefix(name, oldPrefix)
+		if !ok {
+			continue
+		}
+
+		target := newPrefix + suffix
+		if _, set := os.LookupEnv(target); set {
+			continue
+		}
+
+		if err := os.Setenv(target, value); err != nil {
+			return fmt.Errorf("failed to map %s to %s: %w", name, target, err)
+		}
+	}
+
+	return nil
 }
 
 // FromViper takes a viper instance and produces a Config instance.

@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amarbel-llc/treelint/stats"
-	"github.com/amarbel-llc/treelint/test"
-	"github.com/amarbel-llc/treelint/walk"
+	"github.com/amarbel-llc/conformist/stats"
+	"github.com/amarbel-llc/conformist/test"
+	"github.com/amarbel-llc/conformist/walk"
 	"github.com/stretchr/testify/require"
 )
 
 //nolint:gochecknoglobals
 var examplesPaths = []string{
 	".gitignore",
+	"conformist.toml",
 	"emoji 🕰️/README.md",
 	"go/go.mod",
 	"go/main.go",
@@ -24,8 +25,8 @@ var examplesPaths = []string{
 	"haskell/Main.hs",
 	"haskell/Nested/Foo.hs",
 	"haskell/Setup.hs",
+	"haskell/conformist.toml",
 	"haskell/haskell.cabal",
-	"haskell/treelint.toml",
 	"haskell-frontend/CHANGELOG.md",
 	"haskell-frontend/Main.hs",
 	"haskell-frontend/Setup.hs",
@@ -46,7 +47,6 @@ var examplesPaths = []string{
 	"terraform/main.tf",
 	"terraform/two.tf",
 	"touch.toml",
-	"treelint.toml",
 	"yaml/test.yaml",
 }
 

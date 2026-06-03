@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/amarbel-llc/treelint/jujutsu"
-	"github.com/amarbel-llc/treelint/stats"
+	"github.com/amarbel-llc/conformist/jujutsu"
+	"github.com/amarbel-llc/conformist/stats"
 	"github.com/charmbracelet/log"
 	"golang.org/x/sync/errgroup"
 )

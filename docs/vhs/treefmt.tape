@@ -1,5 +1,5 @@
 Require rsync
-Require treelint
+Require conformist
 
 Set Shell zsh
 Set FontSize 11
@@ -15,11 +15,11 @@ Type "TEMP_DIR=$(mktemp -d) && rsync -av $PRJ_ROOT/test/examples/ $TEMP_DIR && p
 Enter
 Type "find . -type f -exec sh -c 'echo "  " >> {}' \;"
 Enter
-Type "alias treelint='treelint --allow-missing-formatter' && clear"
+Type "alias conformist='conformist --allow-missing-formatter' && clear"
 Enter
 Show
 
-Type "treelint"
+Type "conformist"
 Sleep 1s
 Enter
 
@@ -28,7 +28,7 @@ Enter
 Enter
 Sleep 1s
 
-Type "treelint"
+Type "conformist"
 Enter
 
 Sleep 5s
