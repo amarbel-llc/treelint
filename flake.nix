@@ -14,12 +14,6 @@
     nixpkgs-master.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
 
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
-
-    # `nix fmt` driver. Config lives in ./treefmt.nix.
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "igloo";
-    };
   };
 
   outputs =
@@ -28,15 +22,19 @@
       igloo,
       nixpkgs-master,
       utils,
-      treefmt-nix,
     }:
-    utils.lib.eachDefaultSystem (
+    let
+      # conformist's own Nix module library (issue #4). Exposed as `self.lib` so
+      # downstream flakes can `conformist.lib.evalModule pkgs { ... }`, and
+      # consumed below for conformist's own `nix fmt` / `checks.formatting`
+      # (self-consumption — conformist no longer depends on treefmt-nix).
+      conformistLib = import ./nix;
+    in
+    (utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import igloo { inherit system; };
         pkgs-master = import nixpkgs-master { inherit system; };
-
-        treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
 
         conformist = pkgs.buildGoApplication {
           pname = "conformist";
@@ -54,6 +52,23 @@
           # `just test-go` / bats outside the sandbox, not in the package build.
           doCheck = false;
         };
+
+        # conformist self-consuming its own module. Replaces the former
+        # treefmt-nix `treefmtEval`. `package = conformist` is required because
+        # conformist is not in nixpkgs (the module has no default package).
+        conformistEval = conformistLib.evalModule pkgs {
+          imports = [ ./nix/conformist.nix ];
+          package = conformist;
+        };
+
+        # Eval-only smoke test over the full program + linter registries:
+        # checks.<sys>.{formatter-<name>,linter-<name>}. Forces module eval +
+        # config generation for every ported tool, catching schema breakage
+        # without building each tool. See nix/checks.nix.
+        registryChecks = import ./nix/checks.nix {
+          inherit pkgs;
+          lib = conformistLib;
+        };
       in
       {
         packages = {
@@ -61,10 +76,13 @@
           conformist = conformist;
         };
 
-        # `nix fmt` writes; `checks.formatting` is the sandboxed read-only gate
-        # built by `just lint-fmt`.
-        formatter = treefmtEval.config.build.wrapper;
-        checks.formatting = treefmtEval.config.build.check self;
+        # `nix fmt` writes (repair mode); `checks.formatting` is the sandboxed
+        # read-only `conformist check` gate built by `just lint-fmt`. The
+        # `formatter-*` / `linter-*` checks are the registry smoke test.
+        formatter = conformistEval.config.build.wrapper;
+        checks = registryChecks // {
+          formatting = conformistEval.config.build.check self;
+        };
 
         devShells.default = pkgs-master.mkShell {
           packages = [
@@ -86,5 +104,16 @@
           ++ (import ./nix/packages/conformist/formatters.nix pkgs);
         };
       }
-    );
+    ))
+    // {
+      # System-agnostic outputs.
+
+      # The conformist Nix module library: evalModule / submoduleWith /
+      # mkConfigFile / mkWrapper, plus the formatter (programs) and linter
+      # registries. See nix/default.nix.
+      lib = conformistLib;
+
+      # flake-parts module: `perSystem.conformist`. See flake-module.nix.
+      flakeModule = ./flake-module.nix;
+    };
 }

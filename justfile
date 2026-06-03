@@ -15,8 +15,8 @@ validate-devshell:
 
 lint: lint-fmt
 
-# Read-only formatting gate via the treefmt-nix `checks.formatting` derivation
-# (the sandboxed counterpart to the writing `nix fmt`).
+# Read-only gate via the self-consumed conformist `checks.formatting` derivation
+# (a `conformist check` run; the read-only counterpart to the writing `nix fmt`).
 lint-fmt:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -42,6 +42,17 @@ build-nix:
 run-nix *ARGS:
     nix run . -- {{ ARGS }}
 
+# Build conformist's own generated conformist.toml via self.lib.evalModule and
+# cat it, to inspect the emitted [formatter.*] / [linter.*] stanzas. Verifies the
+# Nix module's config generation (issue #4) without a full check run.
+[group("explore")]
+explore-show-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=$(nix build --no-link --print-out-paths --impure --expr \
+      'let f = builtins.getFlake (toString ./.); s = builtins.currentSystem; p = import f.inputs.igloo { system = s; }; in (f.lib.evalModule p { imports = [ ./nix/conformist.nix ]; package = f.packages.${s}.conformist; }).config.build.configFile')
+    cat "$out"
+
 # --- test ---
 
 test: test-go
@@ -51,9 +62,9 @@ test-go:
 
 # --- format ---
 
-codemod-fmt: codemod-fmt-treefmt
+codemod-fmt: codemod-fmt-conformist
 
-codemod-fmt-treefmt:
+codemod-fmt-conformist:
     nix fmt
 
 # --- maintenance ---

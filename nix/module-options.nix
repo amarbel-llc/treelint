@@ -1,0 +1,318 @@
+# The conformist settings schema plus the build.{configFile,wrapper,check,programs}
+# outputs. Ported from treefmt-nix's module-options.nix with these adaptations
+# (see nix/default.nix and issue #4 for rationale):
+#   - the wrapped/checked binary is `conformist`, not `treefmt`;
+#   - `package` has NO default (conformist is not in nixpkgs) — the consumer MUST
+#     set it;
+#   - the settings schema carries a `linter` table parallel to `formatter`
+#     (RFC 0001 §4);
+#   - `build.check` runs `conformist check` and trusts its 0/1/2 exit code
+#     (RFC 0001 §7) instead of treefmt-nix's cp + git-diff dance, and passes an
+#     explicit `--tree-root` (the `/nix/store` config-file path would otherwise
+#     make conformist default tree-root to /nix/store — see issue #2);
+#   - the wrapper always uses `--tree-root-file` (conformist forks treefmt v2.5.0,
+#     which always supports it), dropping treefmt-nix's version-compare branch;
+#   - `build.programs` unions formatters and linters so the devShell gets both;
+#   - the per-tool `meta` apparatus is reduced to a no-op freeform option so the
+#     ported program modules' `meta.maintainers = [...]` lines stay valid.
+{
+  config,
+  options,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  inherit (lib) mkOption types;
+
+  # A new kind of option type that calls lib.getExe on derivations.
+  exeType = lib.mkOptionType {
+    name = "exe";
+    description = "Path to executable";
+    check = x: lib.isString x || builtins.isPath x || lib.isDerivation x;
+    merge =
+      loc: defs:
+      let
+        res = lib.mergeOneOption loc defs;
+      in
+      if lib.isString res || builtins.isPath res then "${res}" else lib.getExe res;
+  };
+
+  configFormat = pkgs.formats.toml { };
+
+  # Remove keys in the setting that are "empty" to keep the config file lean.
+  emptySettingsKeys =
+    lib.optional (config.settings.excludes == [ ]) "excludes"
+    ++ lib.optional (config.settings.on-unmatched == null) "on-unmatched"
+    # Remove deprecated 'global' key (created by mkRenamedOptionModule for
+    # backwards compatibility).
+    ++ [ "global" ];
+
+  settingsData = builtins.removeAttrs config.settings emptySettingsKeys;
+
+  configFile = configFormat.generate "conformist.toml" settingsData;
+
+  # A tool submodule (shared shape for formatter and linter tables). The
+  # freeform TOML type carries any field conformist understands that isn't
+  # declared explicitly here (e.g. check-command, sandbox for formatters;
+  # repair-command, no-positional-arg-support for both) so the generated config
+  # stays forward-compatible with conformist's config struct.
+  toolSubmodule = types.submodule [
+    {
+      freeformType = configFormat.type;
+      options = {
+        command = mkOption {
+          description = "Executable to invoke (formatter repair action / linter check action)";
+          type = exeType;
+        };
+
+        options = mkOption {
+          description = "List of arguments to pass to the command";
+          type = types.listOf types.str;
+          default = [ ];
+        };
+
+        includes = mkOption {
+          description = "List of files to include. Supports globbing.";
+          type = types.listOf types.str;
+        };
+
+        excludes = mkOption {
+          description = "List of files to exclude. Supports globbing. Takes precedence over includes.";
+          type = types.listOf types.str;
+          default = [ ];
+        };
+      };
+    }
+  ];
+
+  # The schema of the conformist config data structure.
+  configSchema = mkOption {
+    default = { };
+    description = "The contents of conformist.toml (treefmt-era filename / TOML shape)";
+    type = types.submodule {
+      imports = [
+        (lib.mkRenamedOptionModule [ "global" "excludes" ] [ "excludes" ])
+        (lib.mkRenamedOptionModule [ "global" "on-unmatched" ] [ "on-unmatched" ])
+      ];
+      freeformType = configFormat.type;
+      options = {
+        excludes = mkOption {
+          description = "A global list of paths to exclude. Supports glob.";
+          type = types.listOf types.str;
+          default = [ ];
+          example = [ "node_modules/*" ];
+        };
+
+        on-unmatched = mkOption {
+          description = "Log paths that did not match any formatters at the specified log level.";
+          type = types.nullOr (
+            types.enum [
+              "debug"
+              "info"
+              "warn"
+              "error"
+              "fatal"
+            ]
+          );
+          default = null;
+        };
+
+        formatter = mkOption {
+          type = types.attrsOf toolSubmodule;
+          default = { };
+          description = "Set of formatters to use";
+        };
+
+        linter = mkOption {
+          type = types.attrsOf toolSubmodule;
+          default = { };
+          description = "Set of linters to use (RFC 0001 §4)";
+        };
+      };
+      config = {
+        excludes = lib.mkIf config.enableDefaultExcludes [
+          # generated lock files i.e. yarn, cargo, nix flakes
+          "*.lock"
+          # Files generated by patch
+          "*.patch"
+
+          # NPM
+          "package-lock.json"
+
+          # Go
+          # In theory go mod tidy could format this, but it has other
+          # side-effects beyond formatting.
+          "go.mod"
+          "go.sum"
+
+          # VCS
+          ".gitattributes"
+          ".gitignore"
+          ".gitmodules"
+          ".hgignore"
+          ".svnignore"
+
+          # License
+          "LICENSE"
+        ];
+      };
+    };
+  };
+
+  # Accumulate the enabled tool packages from both the formatter (programs.*)
+  # and linter (linters.*) namespaces, for the devShell.
+  enabledPackages =
+    cfgNamespace: optNamespace:
+    pkgs.lib.concatMapAttrs (
+      k: v:
+      if (optNamespace.${k}.enable.visible or true) && v.enable then
+        {
+          "${k}" = if optNamespace.${k}.finalPackage.isDefined then v.finalPackage else v.package;
+        }
+      else
+        { }
+    ) cfgNamespace;
+in
+{
+  # Schema
+  options = {
+    # Represents the conformist config.
+    settings = configSchema;
+
+    package = mkOption {
+      description = ''
+        The conformist package to wrap. conformist is not in nixpkgs, so this has no
+        default — the consumer MUST set it (e.g. to the conformist flake's package
+        output, or its own locally-built derivation).
+      '';
+      type = types.package;
+    };
+
+    projectRootFile = mkOption {
+      description = ''
+        File to look for to determine the root of the project in the
+        build.wrapper.
+      '';
+      default = "flake.nix";
+      type = types.str;
+    };
+
+    enableDefaultExcludes = mkOption {
+      description = ''
+        Enable the default excludes in the conformist configuration.
+      '';
+      type = types.bool;
+      default = true;
+    };
+
+    # A reduced, no-op meta surface. The ported program modules carry
+    # `meta.maintainers = [ ... ]`; declaring a freeform meta lets them port
+    # verbatim without stripping those lines. treefmt-nix's platform-filtering
+    # apparatus (broken/platforms/brokenPlatforms/skipExample) is intentionally
+    # dropped — conformist targets the standard systems and per-tool brokenness is
+    # handled when it bites.
+    meta = mkOption {
+      type = types.submodule { freeformType = (pkgs.formats.json { }).type; };
+      internal = true;
+      default = { };
+      description = "Module metadata (unused; kept so ported modules' meta.* stays valid).";
+    };
+
+    # Outputs
+    build = {
+      devShell = mkOption {
+        description = "The development shell with conformist and its underlying programs";
+        type = types.package;
+        readOnly = true;
+      };
+      configFile = mkOption {
+        description = ''
+          Contains the generated config file derived from the settings.
+        '';
+        type = types.path;
+      };
+      wrapper = mkOption {
+        description = ''
+          The conformist package, wrapped with the config file. Runs in repair
+          mode (`nix fmt`).
+        '';
+        type = types.package;
+        defaultText = lib.literalMD "wrapped `conformist` command";
+        default =
+          let
+            code = ''
+              set -euo pipefail
+              unset PRJ_ROOT
+              exec ${config.package}/bin/conformist \
+                --config-file=${config.build.configFile} \
+                --tree-root-file=${config.projectRootFile} \
+                "$@"
+            '';
+            x = pkgs.writeShellScriptBin "conformist" code;
+          in
+          x.overrideAttrs (prev: {
+            meta = config.package.meta // prev.meta;
+          });
+      };
+      programs = mkOption {
+        type = types.attrsOf types.package;
+        description = ''
+          Attrset of formatter and linter programs enabled in the conformist
+          configuration. The key is the tool name; the value is the package used
+          to run it.
+        '';
+        defaultText = lib.literalMD "Programs used in configuration";
+        default =
+          (enabledPackages config.programs options.programs)
+          // (enabledPackages config.linters options.linters);
+      };
+      check = mkOption {
+        description = ''
+          Create a flake check that the given project tree passes
+          `conformist check` (formatters would make no change and linters report no
+          findings) without modifying anything.
+
+          Input argument is the path to the project tree (usually 'self').
+        '';
+        type = types.functionTo types.package;
+        defaultText = lib.literalMD "Default check implementation";
+        default =
+          self:
+          pkgs.runCommandLocal "conformist-check"
+            {
+              # Invoke the RAW conformist binary, NOT build.wrapper: the wrapper
+              # hardcodes --tree-root-file (for repair-mode `nix fmt`), which is
+              # mutually exclusive with the --tree-root we must pass here
+              # (cmd/root.go MarkFlagsMutuallyExclusive). Setting both errors.
+              meta.description = "Check that the project tree passes conformist";
+            }
+            ''
+              set -e
+              # conformist check is strictly read-only (RFC 0001 §2): it never
+              # writes inside the tree root, so we point it straight at the
+              # (read-only) source store path. --tree-root MUST be explicit —
+              # otherwise conformist would fall back to the config-file's
+              # directory (/nix/store) and walk the entire store (issue #2).
+              # Exit code 0 = clean, 1 = findings, 2 = operational error
+              # (RFC 0001 §7); any non-zero fails the build. We do NOT pass
+              # --quiet so findings/errors land in the build log.
+              ${config.package}/bin/conformist --version
+              ${config.package}/bin/conformist check \
+                --config-file=${config.build.configFile} \
+                --tree-root=${self} \
+                ${self}
+              touch $out
+            '';
+      };
+    };
+  };
+
+  # Config
+  config.build = {
+    inherit configFile;
+    devShell = pkgs.mkShell {
+      nativeBuildInputs = [ config.build.wrapper ] ++ (lib.attrValues config.build.programs);
+    };
+  };
+}
