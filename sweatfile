@@ -1,0 +1,20 @@
+# vim: ft=toml
+
+# Per-repo overrides for the eng-root sweatfile (../../sweatfile). conformist is
+# a leaf Go tool, not the home-manager config repo, so the eng-root pre-merge
+# hook does not apply verbatim:
+#   - build-home-dry builds .#homeConfigurations.linux.activationPackage, which
+#     this flake does not expose.
+#   - validate-formatting is the eng-root recipe name; this repo's equivalent is
+#     lint-fmt (builds the sandboxed .#checks.<sys>.formatting derivation; see
+#     eng-design_patterns-justfile(7)).
+# The [[pre-merge-skills]] (simplify, review, eng:loose-ends) are inherited from
+# the eng-root sweatfile and are intentionally not redeclared here.
+
+[hooks]
+# Runs in order in one `just` invocation, aborting on the first failure:
+#   build-nix — builds .#default (the conformist package).
+#   lint-fmt  — builds .#checks.<sys>.formatting: treefmt in verify mode plus the
+#               linters (incl. the bash-syntax lint), against a /nix/store
+#               snapshot. The Go integration suite stays out of the merge gate.
+pre-merge = "just build-nix lint-fmt"
