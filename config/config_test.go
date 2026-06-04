@@ -570,6 +570,35 @@ func TestTreeRootCmd(t *testing.T) {
 	})
 }
 
+// TestTreeRootFallbackToWorkingDir verifies that when no tree root is specified
+// and no git/jujutsu repo is found, the tree root defaults to the working
+// directory rather than the config file's directory. An out-of-tree
+// --config-file (e.g. a /nix/store path) must not silently redirect the walk.
+// See amarbel-llc/conformist#2.
+func TestTreeRootFallbackToWorkingDir(t *testing.T) {
+	as := require.New(t)
+
+	cfg := &config.Config{}
+	v, _ := newViper(t)
+
+	// The config file lives in newViper's tempDir; point the working directory
+	// at a separate, unrelated directory.
+	workDir := t.TempDir()
+	t.Setenv("CONFORMIST_WORKING_DIR", workDir)
+
+	// The filesystem walk skips git/jujutsu detection, forcing the no-repo
+	// fallback regardless of whether the tempdirs sit inside a repo.
+	t.Setenv("CONFORMIST_WALK", "filesystem")
+
+	readValue(t, v, cfg, func(cfg *config.Config) {
+		as.Equal(workDir, cfg.TreeRoot)
+		as.NotEqual(
+			filepath.Dir(v.ConfigFileUsed()), cfg.TreeRoot,
+			"tree root must not fall back to the config file's directory",
+		)
+	})
+}
+
 func TestVerbosity(t *testing.T) {
 	as := require.New(t)
 

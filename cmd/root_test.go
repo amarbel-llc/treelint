@@ -503,14 +503,21 @@ func TestConfigFile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tempDir := test.TempExamples(t)
 
-			// change to a temp directory to avoid interference with config file and auto walk detection from
-			// the conformist repository
-			test.ChangeWorkDir(t, t.TempDir())
+			// Work from an isolated directory holding a known set of files, to
+			// avoid interference with auto walk detection from the conformist
+			// repository. Its two files distinguish "walked the working dir"
+			// from "walked the config file's dir" (which holds one file).
+			workDir := t.TempDir()
+			as.NoError(os.WriteFile(filepath.Join(workDir, "a.txt"), []byte{}, 0o600))
+			as.NoError(os.WriteFile(filepath.Join(workDir, "b.txt"), []byte{}, 0o600))
+			test.ChangeWorkDir(t, workDir)
 
 			// use a config file in a different temp directory
 			configPath := filepath.Join(t.TempDir(), name)
 
-			// if we don't specify a tree root, we default to the directory containing the config file
+			// With an explicit, out-of-tree --config-file and no --tree-root, the
+			// tree root defaults to the working directory (2 files), NOT the
+			// config file's directory. See conformist#2.
 			conformist(t,
 				withConfig(configPath, &config.Config{
 					FormatterConfigs: map[string]*config.Formatter{
@@ -523,9 +530,9 @@ func TestConfigFile(t *testing.T) {
 				withArgs("--config-file", configPath),
 				withNoError(t),
 				withStats(t, map[stats.Type]int{
-					stats.Traversed: 1,
-					stats.Matched:   1,
-					stats.Formatted: 1,
+					stats.Traversed: 2,
+					stats.Matched:   2,
+					stats.Formatted: 2,
 					stats.Changed:   0,
 				}),
 			)
@@ -541,7 +548,8 @@ func TestConfigFile(t *testing.T) {
 				}),
 			)
 
-			// use env variable
+			// use env variable; CONFORMIST_CONFIG is still an out-of-tree config,
+			// so the tree root remains the working directory (2 files, hot cache)
 			conformist(t,
 				withEnv(map[string]string{
 					// CONFORMIST_CONFIG takes precedence
@@ -550,8 +558,8 @@ func TestConfigFile(t *testing.T) {
 				}),
 				withNoError(t),
 				withStats(t, map[stats.Type]int{
-					stats.Traversed: 1,
-					stats.Matched:   1,
+					stats.Traversed: 2,
+					stats.Matched:   2,
 					stats.Formatted: 0,
 					stats.Changed:   0,
 				}),

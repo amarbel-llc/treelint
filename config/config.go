@@ -435,13 +435,32 @@ func determineTreeRoot(v *viper.Viper, cfg *Config, logger *log.Logger) error {
 		}
 
 		if cfg.TreeRoot == "" {
-			// fallback to the directory containing the config file
-			logger.Infof(
-				"setting tree root to the directory containing the config file: %s",
-				v.ConfigFileUsed(),
-			)
+			configDir := filepath.Dir(v.ConfigFileUsed())
 
-			cfg.TreeRoot = filepath.Dir(v.ConfigFileUsed())
+			// No --tree-root and no git/jujutsu repo. A config discovered in-tree
+			// sits at or above the working directory and is a good project-root
+			// proxy, so use its directory — this keeps `conformist` run from a
+			// subdirectory walking the whole tree. But an explicit, out-of-tree
+			// --config-file (e.g. a /nix/store path) must NOT silently redirect
+			// the walk to its own directory; fall back to the working directory
+			// instead. See amarbel-llc/conformist#2.
+			if dirContains(configDir, cfg.WorkingDirectory) {
+				logger.Infof(
+					"no git/jujutsu repo found; tree root defaults to the config file's directory: %s",
+					configDir,
+				)
+
+				cfg.TreeRoot = configDir
+			} else {
+				logger.Warnf(
+					"no git/jujutsu repo found and config file %q is outside the working "+
+						"directory; tree root defaults to the working directory %q — pass "+
+						"--tree-root to override",
+					v.ConfigFileUsed(), cfg.WorkingDirectory,
+				)
+
+				cfg.TreeRoot = cfg.WorkingDirectory
+			}
 		}
 	}
 
@@ -574,6 +593,18 @@ func FindUp(searchDir string, fileNames ...string) (path string, dir string, err
 	}
 
 	return "", "", fmt.Errorf("could not find %s in %s", fileNames, searchDir)
+}
+
+// dirContains reports whether child is parent or a descendant of parent. Both
+// paths are expected to be absolute and cleaned (as cfg.TreeRoot/WorkingDirectory
+// and filepath.Dir(ConfigFileUsed()) already are).
+func dirContains(parent, child string) bool {
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
 }
 
 func eachDir(path string) (paths []string) {
