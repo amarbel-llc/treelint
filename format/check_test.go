@@ -68,6 +68,53 @@ func TestCompositeCheckerLinterFindings(t *testing.T) {
 	as.Equal("stub", findings[0].Tool)
 }
 
+// TestCompositeCheckerWholeTreeLinter verifies that a linter with
+// passes-files=false runs exactly once with no file arguments (a whole-tree
+// check), gated on at least one of its included files being present.
+// See amarbel-llc/conformist#1.
+func TestCompositeCheckerWholeTreeLinter(t *testing.T) {
+	as := require.New(t)
+	root := t.TempDir()
+
+	// stub whole-tree check: records each invocation's arg count to runs.log and
+	// exits non-zero if it is ever handed a file argument.
+	lint := writeFile(t, root, "check.sh",
+		"#!/usr/bin/env bash\necho \"args=$#\" >> runs.log\n[ \"$#\" -eq 0 ] || exit 2\nexit 0\n", 0o755)
+
+	writeFile(t, root, "a.go", "package a\n", 0o644)
+	writeFile(t, root, "b.go", "package b\n", 0o644)
+
+	statz := stats.New()
+
+	passesFiles := false
+	cfg := &config.Config{
+		TreeRoot:    root,
+		OnUnmatched: "info",
+		LinterConfigs: map[string]*config.Linter{
+			"whole": {
+				Command:     lint,
+				Includes:    []string{"*.go"},
+				PassesFiles: &passesFiles,
+			},
+		},
+	}
+
+	checker, err := format.NewCompositeChecker(cfg, &statz)
+	as.NoError(err)
+
+	findings, err := checker.Check(context.Background(), []*walk.File{
+		walkFile(t, root, "a.go"),
+		walkFile(t, root, "b.go"),
+	})
+	as.NoError(err)
+	as.Empty(findings, "a clean whole-tree check should report no findings")
+
+	// the check must have run exactly once, with zero file arguments
+	runs, err := os.ReadFile(filepath.Join(root, "runs.log"))
+	as.NoError(err)
+	as.Equal("args=0\n", string(runs))
+}
+
 // TestCompositeCheckerSandbox verifies that a fix-only formatter is checked via
 // the sandbox: a file that would change is reported, and the original is never
 // modified on disk.

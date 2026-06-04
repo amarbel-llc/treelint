@@ -22,10 +22,11 @@ type Linter struct {
 	name   string
 	config *config.Linter
 
-	log        *log.Logger
-	executable string // resolved check command
-	repairExe  string // resolved repair command (empty if none configured)
-	workingDir string
+	log         *log.Logger
+	executable  string // resolved check command
+	repairExe   string // resolved repair command (empty if none configured)
+	workingDir  string
+	passesFiles bool // false => whole-tree check: run once, no file args
 
 	includes []glob.Glob
 	excludes []glob.Glob
@@ -81,13 +82,19 @@ func (l *Linter) run(
 		return false, "", nil
 	}
 
-	if len(files) > 1 && l.hasNoPositionalArgSupport() {
-		return false, "", ErrNoPositionalArgSupport
-	}
-
 	args := append([]string{}, options...)
-	for _, file := range files {
-		args = append(args, file.RelPath)
+
+	// A whole-tree check (passes-files=false) runs once with no file arguments;
+	// the matched files only gate whether it runs. Otherwise pass each matched
+	// file's path as a positional argument.
+	if l.passesFiles {
+		if len(files) > 1 && l.hasNoPositionalArgSupport() {
+			return false, "", ErrNoPositionalArgSupport
+		}
+
+		for _, file := range files {
+			args = append(args, file.RelPath)
+		}
 	}
 
 	start := time.Now()
@@ -109,7 +116,11 @@ func (l *Linter) run(
 		return false, string(out), fmt.Errorf("linter '%s' failed to execute: %w", l.name, runErr)
 	}
 
-	l.log.Infof("%v file(s) checked in %v", len(files), time.Since(start))
+	if l.passesFiles {
+		l.log.Infof("%v file(s) checked in %v", len(files), time.Since(start))
+	} else {
+		l.log.Infof("whole-tree check completed in %v", time.Since(start))
+	}
 
 	return false, string(out), nil
 }
@@ -121,7 +132,12 @@ func newLinter(name, treeRoot string, env expand.Environ, cfg *config.Linter) (*
 		return nil, ErrInvalidName
 	}
 
-	l := Linter{name: name, config: cfg, workingDir: treeRoot}
+	l := Linter{
+		name:        name,
+		config:      cfg,
+		workingDir:  treeRoot,
+		passesFiles: cfg.PassesFiles == nil || *cfg.PassesFiles,
+	}
 
 	executable, err := interp.LookPathDir(treeRoot, env, cfg.Command)
 	if err != nil {

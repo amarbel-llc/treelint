@@ -138,6 +138,7 @@ formatter name; the two are independent tools.
 | `excludes` | array of string | MAY | Glob patterns removing files from this linter. |
 | `priority` | integer | MAY | Execution order within a file's tool sequence; lower runs first. Default `0`. |
 | `no-positional-arg-support` | boolean | MAY | If `true`, the tool MUST be invoked with at most one file at a time. |
+| `passes-files` | boolean | MAY | Default `true`. If `false`, the linter is a **whole-tree check**: it is invoked once with no file arguments. See below. |
 | `repair-command` | string | MAY | An autofix action used in repair mode. See below. |
 | `repair-options` | array of string | MAY | Arguments for `repair-command`. |
 
@@ -145,6 +146,17 @@ A linter's `command` (check action) MUST be read-only: it MUST NOT write to any
 file it is passed. It MUST exit `0` when all passed files are clean and MUST exit
 non-zero when at least one passed file has a finding. It SHOULD print diagnostics
 to stderr.
+
+A linter with `passes-files = false` is a **whole-tree check**: a tool that
+analyzes a derived artifact across the whole project (e.g. a drift gate that
+re-derives committed output and compares) and takes no per-file arguments.
+conformist MUST invoke it as `command [options]` — with **no file list** — and
+MUST run it **once**, not once per file. Its `includes`/`excludes` gate *whether*
+it runs (it runs when at least one matched file is present in the walk) but its
+matched files are otherwise not passed to it. The check still runs with the tree
+root as its working directory and reports findings via a non-zero exit, exactly
+like a per-file linter. (Whole-tree checks are not yet incrementally cached — they
+run on every `check` invocation; see the follow-up tracked separately.)
 
 In repair mode, conformist determines a linter's repair action as follows:
 
@@ -272,6 +284,14 @@ options = ["check"]
 repair-command = "ruff"
 repair-options = ["check", "--fix"]
 includes = ["*.py", "*.pyi"]
+
+# Whole-tree check: runs once with no file arguments. Re-derives committed
+# facades from sources and fails on drift. Gated by its includes.
+[linter.dewey-drift]
+command = "dagnabit"
+options = ["export", "--check"]
+passes-files = false
+includes = ["libs/dewey/**", "internal/**"]
 ```
 
 Invocations:

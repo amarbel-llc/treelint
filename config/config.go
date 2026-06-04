@@ -95,6 +95,12 @@ type Linter struct {
 	Priority int `mapstructure:"priority,omitempty" toml:"priority,omitempty"`
 	// NoPositionalArgSupport indicates the tool cannot process multiple files at once.
 	NoPositionalArgSupport *bool `mapstructure:"no-positional-arg-support" toml:"no-positional-arg-support"`
+	// PassesFiles controls whether matched file paths are passed to Command as
+	// positional arguments. Defaults to true. Set false for a whole-tree /
+	// run-once check that operates on the project as a whole and takes no file
+	// arguments — it runs once (cwd = tree root) when at least one file matching
+	// its includes is present, but never receives a file list (RFC 0001 §4).
+	PassesFiles *bool `mapstructure:"passes-files,omitempty" toml:"passes-files,omitempty"`
 	// RepairCommand is an optional autofix invocation used in repair mode. If
 	// unset, the linter is a no-op in repair mode (RFC 0001 §4).
 	RepairCommand string `mapstructure:"repair-command,omitempty" toml:"repair-command,omitempty"`

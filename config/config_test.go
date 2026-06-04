@@ -80,6 +80,12 @@ func TestLinterConfig(t *testing.T) {
 				RepairCommand: "ruff",
 				RepairOptions: []string{"check", "--fix"},
 			},
+			"drift": {
+				Command:     "dagnabit",
+				Options:     []string{"export", "--check"},
+				Includes:    []string{"libs/**"},
+				PassesFiles: ptr(false),
+			},
 		},
 	}
 
@@ -87,7 +93,7 @@ func TestLinterConfig(t *testing.T) {
 
 	decoded, err := config.FromViper(v)
 	as.NoError(err)
-	as.Len(decoded.LinterConfigs, 2)
+	as.Len(decoded.LinterConfigs, 3)
 
 	sc := decoded.LinterConfigs["shellcheck"]
 	as.NotNil(sc)
@@ -98,7 +104,17 @@ func TestLinterConfig(t *testing.T) {
 	as.NotNil(ruff)
 	as.Equal("ruff", ruff.RepairCommand)
 	as.Equal([]string{"check", "--fix"}, ruff.RepairOptions)
+
+	// a whole-tree check round-trips passes-files=false; the per-file linters
+	// leave it unset (nil => defaults to true).
+	drift := decoded.LinterConfigs["drift"]
+	as.NotNil(drift)
+	as.NotNil(drift.PassesFiles)
+	as.False(*drift.PassesFiles)
+	as.Nil(sc.PassesFiles)
 }
+
+func ptr[T any](v T) *T { return &v }
 
 func readError(t *testing.T, v *viper.Viper, cfg *config.Config, test func(error)) {
 	t.Helper()
