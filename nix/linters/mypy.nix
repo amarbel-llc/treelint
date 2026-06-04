@@ -1,3 +1,12 @@
+# mypy as a conformist LINTER (RFC 0001 §4). mypy is a static type checker: it
+# reports type errors and exits non-zero on findings, with no autofix, so it is
+# check-only (a no-op in repair mode). Reclassified from a treefmt-nix
+# "formatter" (conformist#6).
+#
+# Unlike most linters, mypy is configured per-directory (it checks modules, not
+# a file list), so this module does not use mkLinterModule: it maps the
+# `directories` option to one `[linter.mypy-<dir>]` stanza each, each invoking
+# mypy via a bash wrapper that sets PYTHONPATH and cd's into the directory.
 {
   lib,
   pkgs,
@@ -12,7 +21,7 @@ in
   # Example contains store paths
   meta.skipExample = true;
 
-  options.programs.mypy = {
+  options.linters.mypy = {
     enable = lib.mkEnableOption "mypy";
     package = lib.mkPackageOption pkgs "mypy" { };
     directories = lib.mkOption {
@@ -76,8 +85,8 @@ in
     };
   };
 
-  config = lib.mkIf config.programs.mypy.enable {
-    settings.formatter = lib.mapAttrs' (
+  config = lib.mkIf config.linters.mypy.enable {
+    settings.linter = lib.mapAttrs' (
       name: cfg:
       lib.nameValuePair "mypy-${escapePath name}" {
         command = pkgs.bash;
@@ -93,7 +102,7 @@ in
                 )
               )
             }"
-            ${lib.getExe config.programs.mypy.package} ${lib.escapeShellArgs cfg.options} ${lib.escapeShellArgs cfg.modules}
+            ${lib.getExe config.linters.mypy.package} ${lib.escapeShellArgs cfg.options} ${lib.escapeShellArgs cfg.modules}
           ''
         ];
         includes = builtins.map (
@@ -103,6 +112,6 @@ in
           )
         ) cfg.modules;
       }
-    ) config.programs.mypy.directories;
+    ) config.linters.mypy.directories;
   };
 }

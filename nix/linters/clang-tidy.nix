@@ -1,20 +1,31 @@
+# clang-tidy as a conformist LINTER (RFC 0001 §4). The check action is
+# `clang-tidy` (reports diagnostics, exits non-zero on findings); the repair
+# action adds `--fix` (applies fixes in repair mode). treefmt-nix shipped this
+# as a "formatter" that always passed `--fix`; conformist splits the two
+# (conformist#6). The config-file / compile-commands / quiet flags apply to both
+# invocations.
 {
   config,
-  mkFormatterModule,
+  mkLinterModule,
   lib,
   ...
 }:
 let
-  cfg = config.programs.clang-tidy;
+  cfg = config.linters.clang-tidy;
+  sharedFlags =
+    lib.optional (cfg.configFile != null) "--config-file=${cfg.configFile}"
+    ++ lib.optional (cfg.compileCommandsPath != null) "-p=${cfg.compileCommandsPath}"
+    ++ lib.optional cfg.quiet "--quiet";
 in
 {
   meta.maintainers = [ ];
 
   imports = [
-    (mkFormatterModule {
+    (mkLinterModule {
       name = "clang-tidy";
       package = "clang-tools";
       mainProgram = "clang-tidy";
+      repairArgs = [ "--fix" ];
       includes = [
         "*.c"
         "*.cc"
@@ -33,7 +44,7 @@ in
     })
   ];
 
-  options.programs.clang-tidy = {
+  options.linters.clang-tidy = {
     configFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       description = "Specify the path of .clang-tidy or custom config file";
@@ -53,14 +64,10 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    settings.formatter.clang-tidy = {
-      options = [
-        "--fix"
-      ]
-      ++ lib.optional (cfg.configFile != null) "--config-file=${cfg.configFile}"
-      ++ lib.optional (cfg.compileCommandsPath != null) "-p=${cfg.compileCommandsPath}"
-      ++ lib.optional cfg.quiet "--quiet";
+  config = lib.mkIf (cfg.enable && sharedFlags != [ ]) {
+    settings.linter.clang-tidy = {
+      options = lib.mkAfter sharedFlags;
+      "repair-options" = lib.mkAfter sharedFlags;
     };
   };
 }

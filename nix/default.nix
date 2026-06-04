@@ -111,8 +111,13 @@ let
       args ? [ ],
       includes ? [ ],
       excludes ? [ ],
-      # Default repair command/args, if the tool has a native autofix. A linter
-      # with no repair action is a no-op in repair mode (RFC 0001 §4).
+      # Repair (autofix) action, if the tool has one. The common case is the
+      # SAME binary as the check `command` invoked with different args (e.g.
+      # `statix check` vs `statix fix`, `ruff check` vs `ruff check --fix`): set
+      # `repairArgs` and leave `repairMainProgram` null, and `repair-command`
+      # defaults to the check binary. Set `repairMainProgram` only when the
+      # autofix is a different executable. A linter with neither is a no-op in
+      # repair mode (RFC 0001 §4).
       repairMainProgram ? null,
       repairArgs ? [ ],
     }:
@@ -170,12 +175,19 @@ let
         // (lib.optionalAttrs (args != [ ]) {
           options = if args._type or null == "order" then args else lib.mkBefore args;
         })
-        // (lib.optionalAttrs (repairMainProgram != null) {
+        // (lib.optionalAttrs (repairMainProgram != null || repairArgs != [ ]) {
+          # repair-command defaults to the check binary when repairMainProgram is
+          # null (same-binary autofix, args differ via repairArgs); otherwise the
+          # named repair executable. Unlike `command` (an exeType option that
+          # getExe-coerces a package), this is a freeform string key, so resolve
+          # the bare-package case with lib.getExe explicitly — otherwise it would
+          # serialize the derivation's out path, not its binary.
           "repair-command" = lib.mkDefault (
             let
               pkg = if opt.finalPackage.isDefined then cfg.finalPackage else cfg.package;
+              repairProg = if repairMainProgram == null then mainProgram else repairMainProgram;
             in
-            "${pkg}/bin/${repairMainProgram}"
+            if repairProg == null then lib.getExe pkg else "${pkg}/bin/${repairProg}"
           );
         })
         // (lib.optionalAttrs (repairArgs != [ ]) {

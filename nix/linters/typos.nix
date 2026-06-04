@@ -1,30 +1,59 @@
+# typos as a conformist LINTER (RFC 0001 §4). The check action is `typos`
+# (reports misspellings, exits non-zero on findings); the repair action adds
+# `--write-changes` (applies corrections in repair mode). treefmt-nix shipped
+# this as a "formatter" that always ran `--write-changes`; conformist splits the
+# two (conformist#6).
+#
+# `--force-exclude` (so typos honours its own ignore config even when conformist
+# passes a matched file) and all the tuning flags apply to BOTH invocations.
 {
   lib,
   config,
-  mkFormatterModule,
+  mkLinterModule,
   ...
 }:
 let
-  cfg = config.programs.typos;
+  cfg = config.linters.typos;
+  sharedFlags = [
+    "--force-exclude"
+  ]
+  ++ (lib.optionals (!isNull cfg.threads) [
+    "--threads"
+    (toString cfg.threads)
+  ])
+  ++ (lib.optionals (!isNull cfg.locale) [
+    "--locale"
+    (toString cfg.locale)
+  ])
+  ++ (lib.optionals (!isNull cfg.configFile) [
+    "--config"
+    cfg.configFile
+  ])
+  ++ lib.optional cfg.sort "--sort"
+  ++ lib.optional cfg.isolated "--isolated"
+  ++ lib.optional cfg.hidden "--hidden"
+  ++ lib.optional cfg.noIgnore "--no-ignore"
+  ++ lib.optional cfg.noIgnoreDot "--no-ignore-dot"
+  ++ lib.optional cfg.noIgnoreGlobal "--no-ignore-global"
+  ++ lib.optional cfg.noIgnoreParent "--no-ignore-parent"
+  ++ lib.optional cfg.noIgnoreVCS "--no-ignore-vcs"
+  ++ lib.optional cfg.binary "--binary"
+  ++ lib.optional cfg.noCheckFilenames "--no-check-filenames"
+  ++ lib.optional cfg.noCheckFiles "--no-check-files"
+  ++ lib.optional cfg.noUnicode "--no-unicode";
 in
 {
   meta.maintainers = [ "adam-gaia" ];
 
   imports = [
-    (mkFormatterModule {
+    (mkLinterModule {
       name = "typos";
-      args = [
-        "--write-changes"
-
-        # Treefmt may pass files otherwise ignored by typos (e.g. files ignored in typos.toml).
-        # '--force-exclude' stops typos from acting on any ignored files passed
-        "--force-exclude"
-      ];
+      repairArgs = [ "--write-changes" ];
       includes = [ "*" ];
     })
   ];
 
-  options.programs.typos = {
+  options.linters.typos = {
     threads = lib.mkOption {
       type = lib.types.nullOr lib.types.int;
       default = null;
@@ -128,32 +157,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    settings.formatter.typos = {
-      options =
-        (lib.optionals (!isNull cfg.threads) [
-          "--threads"
-          (toString cfg.threads)
-        ])
-        ++ (lib.optionals (!isNull cfg.locale) [
-          "--locale"
-          (toString cfg.locale)
-        ])
-        ++ (lib.optionals (!isNull cfg.configFile) [
-          "--config"
-          cfg.configFile
-        ])
-        ++ lib.optional cfg.sort "--sort"
-        ++ lib.optional cfg.isolated "--isolated"
-        ++ lib.optional cfg.hidden "--hidden"
-        ++ lib.optional cfg.noIgnore "--no-ignore"
-        ++ lib.optional cfg.noIgnoreDot "--no-ignore-dot"
-        ++ lib.optional cfg.noIgnoreGlobal "--no-ignore-global"
-        ++ lib.optional cfg.noIgnoreParent "--no-ignore-parent"
-        ++ lib.optional cfg.noIgnoreVCS "--no-ignore-vcs"
-        ++ lib.optional cfg.binary "--binary"
-        ++ lib.optional cfg.noCheckFilenames "--no-check-filenames"
-        ++ lib.optional cfg.noCheckFiles "--no-check-files"
-        ++ lib.optional cfg.noUnicode "--no-unicode";
+    settings.linter.typos = {
+      options = lib.mkAfter sharedFlags;
+      "repair-options" = lib.mkAfter sharedFlags;
     };
   };
 }
