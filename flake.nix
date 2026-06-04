@@ -61,6 +61,15 @@
           package = conformist;
         };
 
+        # IMPURE self-check config: git-state whole-tree checks (e.g. git-remotes)
+        # that need a live .git and so cannot run in the sandboxed
+        # checks.formatting. `just check-worktree` builds this config and runs
+        # `conformist check` against the working tree. See nix/conformist-impure.nix.
+        conformistImpureEval = conformistLib.evalModule pkgs {
+          imports = [ ./nix/conformist-impure.nix ];
+          package = conformist;
+        };
+
         # Eval-only smoke test over the full program + linter registries:
         # checks.<sys>.{formatter-<name>,linter-<name>}. Forces module eval +
         # config generation for every ported tool, catching schema breakage
@@ -74,6 +83,9 @@
         packages = {
           default = conformist;
           conformist = conformist;
+          # The generated config for the impure (git-state) self-checks, consumed
+          # by `just check-worktree`.
+          conformist-impure-config = conformistImpureEval.config.build.configFile;
         };
 
         # `nix fmt` writes (repair mode); `checks.formatting` is the sandboxed

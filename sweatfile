@@ -13,8 +13,12 @@
 
 [hooks]
 # Runs in order in one `just` invocation, aborting on the first failure:
-#   build-nix — builds .#default (the conformist package).
-#   lint-fmt  — builds .#checks.<sys>.formatting: treefmt in verify mode plus the
-#               linters (incl. the bash-syntax lint), against a /nix/store
-#               snapshot. The Go integration suite stays out of the merge gate.
-pre-merge = "just build-nix lint-fmt"
+#   build-nix      — builds .#default (the conformist package).
+#   lint-fmt       — builds .#checks.<sys>.formatting: a sandboxed `conformist
+#                    check` (formatters in verify mode + file-based linters,
+#                    incl. eng-versioning) over a /nix/store snapshot.
+#   check-worktree — runs the IMPURE git-state whole-tree checks (e.g.
+#                    git-remotes) against the working tree, where .git is
+#                    available (these can't run in the sandbox).
+# The Go integration suite stays out of the merge gate.
+pre-merge = "just build-nix lint-fmt check-worktree"
