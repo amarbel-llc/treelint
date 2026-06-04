@@ -17,6 +17,11 @@
   # path end-to-end.
   linters.shellcheck.enable = true;
 
+  # Whole-tree check (passes-files=false): conformist self-enforces eng-versioning(7)
+  # — version.env must declare `export CONFORMIST_VERSION=<semver>`. Reads only
+  # committed files, so it runs in the sandboxed checks.formatting gate.
+  linters.eng-versioning.enable = true;
+
   # Prefer top-level `excludes` over the deprecated `global.excludes`. These
   # apply to formatters and linters alike, so the test/** fixtures (deliberately
   # mis-formatted) are not linted or format-checked.
