@@ -44,6 +44,10 @@ let
   emptySettingsKeys =
     lib.optional (config.settings.excludes == [ ]) "excludes"
     ++ lib.optional (config.settings.on-unmatched == null) "on-unmatched"
+    # Drop an empty formatter/linter table so a single-kind config doesn't emit
+    # a bare `[formatter]` / `[linter]` header (conformist#7).
+    ++ lib.optional (config.settings.formatter == { }) "formatter"
+    ++ lib.optional (config.settings.linter == { }) "linter"
     # Remove deprecated 'global' key (created by mkRenamedOptionModule for
     # backwards compatibility).
     ++ [ "global" ];
