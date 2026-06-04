@@ -8,8 +8,10 @@
 {
   projectRootFile = "flake.nix";
 
-  # git-remotes needs a live .git; sweatfile runs `spinclass validate` (spinclass
-  # is profile-installed, not nixpkgs). Both live here, not in nix/conformist.nix.
+  # git-remotes / git-default-branch need a live .git; sweatfile runs
+  # `spinclass validate` (spinclass is profile-installed, not nixpkgs). These all
+  # need the working tree / host tools, so they live here, not in nix/conformist.nix.
   linters.git-remotes.enable = true;
+  linters.git-default-branch.enable = true;
   linters.sweatfile.enable = true;
 }

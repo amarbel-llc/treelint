@@ -104,8 +104,8 @@ release new_version:
 
     # Release only from the default branch.
     branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$branch" != "main" ]]; then
-        echo "release only allowed from main (on '$branch')" >&2
+    if [[ "$branch" != "master" ]]; then
+        echo "release only allowed from master (on '$branch')" >&2
         exit 1
     fi
 
