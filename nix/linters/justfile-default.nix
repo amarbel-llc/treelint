@@ -1,6 +1,7 @@
-# eng-design_patterns-justfile(7) DEFAULT RECIPE: `default` must be the first
-# recipe in the file. Whole-tree check (passes-files=false): reads the justfile,
-# takes no file arguments. See eng-design_patterns-justfile(7).
+# eng-design_patterns-justfile(7) DEFAULT RECIPE: `default` must be the FIRST
+# recipe, and it must contain only aggregate targets (recipes with no body of
+# their own) — never leaves directly. Whole-tree check (passes-files=false):
+# reads the justfile, takes no file arguments.
 {
   config,
   lib,
@@ -22,7 +23,7 @@ let
         exit 1
       }
 
-      # First recipe = first column-0 line that is a recipe (not a comment,
+      # The first recipe = first column-0 line that is a recipe (not a comment,
       # blank, [attribute], or `name :=` assignment) and contains a `:`.
       first=$(awk '
         /^[[:space:]]*#/ { next }
@@ -42,13 +43,30 @@ let
         echo "justfile-default: the first recipe must be 'default' (found: '$first') — eng-design_patterns-justfile(7)" >&2
         exit 1
       fi
-      echo "justfile-default: 'default' is the first recipe"
+
+      # `default` must list only aggregate targets: each dependency recipe must
+      # have no body of its own (the line after its definition is not indented).
+      deps=$(awk '/^default[[:space:]]*:/ { sub(/^[^:]*:[[:space:]]*/, ""); sub(/#.*/, ""); print; exit }' justfile)
+      fail=0
+      for dep in $deps; do
+        body=$(awk -v r="$dep" '
+          !found && $0 ~ ("^" r "([[:space:]].*)?:") { found = 1; next }
+          found { if ($0 ~ /^[[:space:]]/ && $0 !~ /^[[:space:]]*$/) print "body"; exit }
+        ' justfile)
+        if [ -n "$body" ]; then
+          echo "justfile-default: 'default' lists leaf recipe '$dep' (it has a body); default must contain only aggregate targets — eng-design_patterns-justfile(7)" >&2
+          fail=1
+        fi
+      done
+      [ "$fail" -eq 0 ] || exit 1
+
+      echo "justfile-default: 'default' is the first recipe and lists only aggregates"
     '';
   };
 in
 {
   options.linters.justfile-default = {
-    enable = lib.mkEnableOption "the 'default is the first recipe' whole-tree check (eng-design_patterns-justfile(7))";
+    enable = lib.mkEnableOption "the 'default is first + aggregates-only' whole-tree check (eng-design_patterns-justfile(7))";
   };
 
   config = lib.mkIf cfg.enable {
