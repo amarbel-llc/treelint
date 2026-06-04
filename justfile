@@ -1,7 +1,7 @@
 # conformist justfile. Conventions: eng-design_patterns-justfile(7),
 # eng-versioning(7). `default` runs the full local CI lane.
 
-default: validate lint build test
+default: build lint
 
 # --- validate (cheap pre-build gate) ---
 
@@ -13,7 +13,7 @@ validate-devshell:
 
 # --- lint ---
 
-lint: lint-fmt check-worktree
+lint: lint-fmt lint-worktree
 
 # Read-only gate via the self-consumed conformist `checks.formatting` derivation
 # (a `conformist check` run; the read-only counterpart to the writing `nix fmt`).
@@ -26,7 +26,7 @@ lint-fmt:
 # Non-sandbox lane: run the IMPURE git-state whole-tree checks (e.g. git-remotes)
 # against the WORKING TREE, where .git is available. These can't run in the
 # sandboxed checks.formatting. Builds the impure config + binary via nix.
-check-worktree:
+lint-worktree:
     #!/usr/bin/env bash
     set -euo pipefail
     cfg=$(nix build --no-link --print-out-paths '.#conformist-impure-config')

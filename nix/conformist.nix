@@ -17,10 +17,14 @@
   # path end-to-end.
   linters.shellcheck.enable = true;
 
-  # Whole-tree check (passes-files=false): conformist self-enforces eng-versioning(7)
-  # — version.env must declare `export CONFORMIST_VERSION=<semver>`. Reads only
-  # committed files, so it runs in the sandboxed checks.formatting gate.
-  linters.eng-versioning.enable = true;
+  # Whole-tree checks (passes-files=false): conformist self-enforces eng-*
+  # conventions. These read only committed files, so they run in the sandboxed
+  # checks.formatting gate (the git-state checks live in nix/conformist-impure.nix).
+  linters.eng-versioning.enable = true; # eng-versioning(7): version.env key
+  linters.flake-outputs.enable = true; # conformist#9: outputs formal accepts all inputs
+  linters.justfile-default.enable = true; # eng-design_patterns-justfile(7): default first
+  linters.justfile-recipe-names.enable = true; # ...(7): verb-noun recipe naming
+  linters.sweatfile.enable = true; # eng convention: sweatfile pre-merge = "just"
 
   # Prefer top-level `excludes` over the deprecated `global.excludes`. These
   # apply to formatters and linters alike, so the test/** fixtures (deliberately

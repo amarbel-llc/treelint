@@ -1,24 +1,14 @@
 # vim: ft=toml
 
-# Per-repo overrides for the eng-root sweatfile (../../sweatfile). conformist is
-# a leaf Go tool, not the home-manager config repo, so the eng-root pre-merge
-# hook does not apply verbatim:
-#   - build-home-dry builds .#homeConfigurations.linux.activationPackage, which
-#     this flake does not expose.
-#   - validate-formatting is the eng-root recipe name; this repo's equivalent is
-#     lint-fmt (builds the sandboxed .#checks.<sys>.formatting derivation; see
-#     eng-design_patterns-justfile(7)).
+# Per-repo override of the eng-root pre-merge hook. The eng-root sweatfile lists
+# specific recipes (build-home-dry, validate-formatting) tailored to the
+# home-manager config repo. conformist is a leaf Go tool, so it follows the
+# eng-design_patterns-justfile(7) convention: the pre-merge hook is just `just`
+# — the default recipe is the CI-equivalent lane. Here `default: build lint`
+# builds the package and runs the conformance checks (the sandboxed file-based
+# linters via lint-fmt + the working-tree git-state linters via lint-worktree).
 # The [[pre-merge-skills]] (simplify, review, eng:loose-ends) are inherited from
-# the eng-root sweatfile and are intentionally not redeclared here.
+# the eng-root sweatfile and intentionally not redeclared here.
 
 [hooks]
-# Runs in order in one `just` invocation, aborting on the first failure:
-#   build-nix      — builds .#default (the conformist package).
-#   lint-fmt       — builds .#checks.<sys>.formatting: a sandboxed `conformist
-#                    check` (formatters in verify mode + file-based linters,
-#                    incl. eng-versioning) over a /nix/store snapshot.
-#   check-worktree — runs the IMPURE git-state whole-tree checks (e.g.
-#                    git-remotes) against the working tree, where .git is
-#                    available (these can't run in the sandbox).
-# The Go integration suite stays out of the merge gate.
-pre-merge = "just build-nix lint-fmt check-worktree"
+pre-merge = "just"
