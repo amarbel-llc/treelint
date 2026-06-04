@@ -1,8 +1,12 @@
-# eng convention: a leaf repo's spinclass sweatfile pre-merge hook should be just
-# `just` — the default recipe is the CI-equivalent lane (eng-design_patterns-justfile(7)
-# DEFAULT RECIPE), so the gate runs `just`, not a hand-listed set of recipes.
-# Whole-tree check (passes-files=false): reads the sweatfile, takes no file args.
-# (A repo that inherits the parent hook — no local pre-merge override — passes.)
+# A spinclass sweatfile must be present at the repo root and pass
+# `spinclass validate` (structural + semantic validation of the sweatfile
+# hierarchy). Whole-tree check (passes-files=false): takes no file arguments.
+#
+# IMPURE: `spinclass` is installed in the user profile (not nixpkgs) and validate
+# walks the live sweatfile hierarchy, so this can't run in the sandboxed
+# checks.formatting. It lives in nix/conformist-impure.nix and runs via
+# `just lint-worktree`. writeShellScriptBin (not writeShellApplication) so the
+# script inherits the caller's PATH, where `spinclass` resolves.
 {
   config,
   lib,
@@ -12,40 +16,29 @@
 let
   cfg = config.linters.sweatfile;
 
-  check = pkgs.writeShellApplication {
-    name = "conformist-sweatfile";
-    runtimeInputs = with pkgs; [
-      coreutils
-      gnugrep
-      gnused
-    ];
-    text = ''
-      [ -f sweatfile ] || exit 0
-
-      line=$(sed 's/#.*$//' sweatfile | grep -E '^[[:space:]]*pre-merge[[:space:]]*=' | head -1 || true)
-      if [ -z "$line" ]; then
-        echo "sweatfile: no [hooks].pre-merge override (inherits the parent hook)"
-        exit 0
-      fi
-
-      val=$(printf '%s' "$line" | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]*$//')
-      if [ "$val" != '"just"' ]; then
-        echo "sweatfile: [hooks].pre-merge must be \"just\" — the default recipe is the CI lane (eng-design_patterns-justfile(7)); found: $val" >&2
-        exit 1
-      fi
-      echo "sweatfile: [hooks].pre-merge is \"just\""
-    '';
-  };
+  check = pkgs.writeShellScriptBin "conformist-sweatfile" ''
+    [ -f sweatfile ] || {
+      echo "sweatfile: a spinclass sweatfile is expected at the tree root but is missing" >&2
+      exit 1
+    }
+    if ! command -v spinclass >/dev/null 2>&1; then
+      echo "sweatfile: present, but spinclass is not on PATH; skipping validation"
+      exit 0
+    fi
+    exec spinclass validate
+  '';
 in
 {
   options.linters.sweatfile = {
-    enable = lib.mkEnableOption "the sweatfile pre-merge='just' whole-tree check";
+    enable = lib.mkEnableOption "the sweatfile presence + `spinclass validate` whole-tree check";
   };
 
   config = lib.mkIf cfg.enable {
     settings.linter.sweatfile = {
       command = lib.getExe check;
-      includes = [ "sweatfile" ];
+      # Gate on a file that is always present; the script enforces sweatfile
+      # presence itself (so a missing sweatfile is a finding, not a no-run).
+      includes = [ "flake.nix" ];
       passes-files = false;
     };
   };

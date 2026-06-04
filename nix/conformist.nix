@@ -24,7 +24,6 @@
   linters.flake-outputs.enable = true; # conformist#9: outputs formal accepts all inputs
   linters.justfile-default.enable = true; # eng-design_patterns-justfile(7): default first
   linters.justfile-recipe-names.enable = true; # ...(7): verb-noun recipe naming
-  linters.sweatfile.enable = true; # eng convention: sweatfile pre-merge = "just"
 
   # Prefer top-level `excludes` over the deprecated `global.excludes`. These
   # apply to formatters and linters alike, so the test/** fixtures (deliberately
