@@ -156,6 +156,32 @@
         formatter = conformistEval.config.build.wrapper;
         checks = registryChecks // {
           formatting = conformistEval.config.build.check self;
+
+          # Regression test for the sandbox-safe script-linter helper
+          # (conformist#19). Packages an example `#!/usr/bin/env bash` script via
+          # writeCheckScript and EXECUTES it inside the build sandbox — which has
+          # no /usr/bin/env — so a missing patchShebangs would make exec fail here
+          # (the very failure #19 describes), failing the build. This is the
+          # dogfood proof that the helper produces sandbox-safe scripts.
+          write-check-script =
+            let
+              example = conformistLib.writeCheckScript pkgs {
+                name = "example-check";
+                src = pkgs.writeText "example-check" "#!/usr/bin/env bash\necho ok\n";
+                runtimeInputs = [ pkgs.coreutils ];
+              };
+            in
+            pkgs.runCommand "conformist-write-check-script-test" { } ''
+              got=$(${example}/bin/example-check) || {
+                echo "write-check-script: example failed to exec in the pure sandbox (#19 regression)" >&2
+                exit 1
+              }
+              [ "$got" = "ok" ] || {
+                echo "write-check-script: unexpected output '$got'" >&2
+                exit 1
+              }
+              touch $out
+            '';
         };
 
         devShells.default = pkgs-master.mkShell {

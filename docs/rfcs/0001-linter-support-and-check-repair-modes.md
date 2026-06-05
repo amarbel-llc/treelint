@@ -147,6 +147,14 @@ file it is passed. It MUST exit `0` when all passed files are clean and MUST exi
 non-zero when at least one passed file has a finding. It SHOULD print diagnostics
 to stderr.
 
+A `command`/`repair-command` that is a hand-written script (rather than a packaged
+binary) MUST resolve its shebang to an absolute interpreter rather than
+`#!/usr/bin/env …`. The check may run inside a pure build sandbox — e.g. the Nix
+module's `checks.<name>` gate — where `/usr/bin/env` is absent, so an unresolved
+shebang fails to exec (the failure is masked outside the sandbox). The Nix module
+ships `conformist.lib.writeCheckScript` to package such scripts safely (it runs
+`patchShebangs`); see the Nix module guide.
+
 A linter with `passes-files = false` is a **whole-tree check**: a tool that
 analyzes a derived artifact across the whole project (e.g. a drift gate that
 re-derives committed output and compares) and takes no per-file arguments.

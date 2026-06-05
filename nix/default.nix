@@ -16,6 +16,12 @@ let
   # their option declarations.
   linters = import ./linters.nix;
 
+  # Sandbox-safe packaging for a script-based linter command (conformist#19).
+  # `writeCheckScript pkgs { name; src; runtimeInputs ? [] }` installs the
+  # script, patchShebangs it (so it execs in the pure-nix `conformist check`
+  # sandbox), and optionally wraps a PATH. See ./write-check-script.nix.
+  writeCheckScript = import ./write-check-script.nix;
+
   # mkFormatterModule builds a module that declares `programs.<name>.*` options
   # and, when enabled, emits a `[formatter.<name>]` stanza. Ported verbatim from
   # treefmt-nix so the ~155 programs/<name>.nix modules port unchanged.
@@ -309,6 +315,7 @@ in
     module-options
     programs
     linters
+    writeCheckScript
     all-modules
     submodule-modules
     evalModule

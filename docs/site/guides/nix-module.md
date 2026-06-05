@@ -129,6 +129,42 @@ conformistEval = conformist.lib.evalModule pkgs {
     `no-positional-arg-support`). In Nix these must be **quoted**:
     `"repair-command"`, not `repair-command`.
 
+### Packaging a local script linter (sandbox-safe)
+
+When a linter's `command` / `repair-command` is a script kept in your repo
+(rather than a nixpkgs binary), package it with
+`conformist.lib.writeCheckScript`. It installs the script, runs `patchShebangs`,
+and prepends `runtimeInputs` to `PATH`:
+
+```nix
+conformistEval = conformist.lib.evalModule pkgs {
+  package = conformist.packages.${system}.default;
+
+  settings.linter.dead-jq =
+    let
+      deadJq = conformist.lib.writeCheckScript pkgs {
+        name = "lint-dead-jq";
+        src = ./scripts/lint-dead-jq;        # may start with #!/usr/bin/env bash
+        runtimeInputs = [ pkgs.jq pkgs.gnugrep ];
+      };
+    in
+    {
+      command = "${deadJq}/bin/lint-dead-jq";
+      includes = [ "*.jq" ];
+    };
+};
+```
+
+!!! warning "Why patchShebangs matters"
+    A hand-rolled `cp script + wrapProgram` that forgets `patchShebangs` keeps
+    the script's `#!/usr/bin/env bash` shebang. That **fails to exec inside the
+    read-only `conformist check` sandbox** (the `checks.<name>` gate), where
+    `/usr/bin/env` does not exist — and the failure is **masked outside the
+    sandbox**, where a dev shell does have `/usr/bin/env`
+    ([conformist#19](https://github.com/amarbel-llc/conformist/issues/19)).
+    `writeCheckScript` resolves the shebang for you; if you must hand-roll, run
+    `patchShebangs $out/bin` **before** `wrapProgram`.
+
 ## How the wrapper and check resolve the tree root
 
 The two build outputs run conformist in different modes and resolve the tree root
