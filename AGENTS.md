@@ -30,7 +30,12 @@ not run `just`/`just lint` again right before merging.
 - `just build-go` — fast out-of-nix `go build -o build/conformist .` (version
   stays `dev`/`unknown`; only the nix build injects real version/commit).
 - `just test` / `just test-go` — `nix develop --command go test ./...`. Run a
-  single test with `nix develop --command go test ./format -run TestName`.
+  single test with `nix develop --command go test ./format -run TestName`. The
+  `cmd` integration tests run conformist against `$TMPDIR` fixtures; a `cmd`
+  `TestMain` sets `GIT_CEILING_DIRECTORIES` (git tree-root search) and
+  `CONFORMIST_CEILING_DIRECTORIES` (config discovery) to the temp root so they
+  can't escape into the worktree/monorepo (conformist#15), and `just test-go`
+  fails if the working tree is mutated during the run.
 - `just lint` — `lint-fmt` (sandboxed `checks.formatting`, file-based linters) +
   `lint-worktree` (impure git-state linters against the working tree, where
   `.git` is available).

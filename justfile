@@ -67,7 +67,23 @@ explore-show-config:
 test: test-go
 
 test-go:
+    #!/usr/bin/env bash
+    # Guard for conformist#15: the cmd integration tests run conformist against
+    # $TMPDIR fixtures. The cmd TestMain sets GIT_CEILING_DIRECTORIES and
+    # CONFORMIST_CEILING_DIRECTORIES so they can't escape into the worktree, but
+    # fail loudly if the working tree is mutated during the run so a regression
+    # can't hide in a commit. No `set -e`: capture the test result, always run
+    # the tree check (even on test failure), then propagate the test status.
+    set -uo pipefail
+    before=$(git status --porcelain)
     nix develop --command go test ./...
+    rc=$?
+    after=$(git status --porcelain)
+    if [ "$before" != "$after" ]; then
+        echo "test-go: working tree changed during tests — likely conformist#15 (tests escaped tree-root into the worktree). Recover with 'git checkout -- .'." >&2
+        exit 1
+    fi
+    exit "$rc"
 
 # --- format ---
 

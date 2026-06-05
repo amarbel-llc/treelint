@@ -901,3 +901,59 @@ func TestLegacyEnvPrefix(t *testing.T) {
 		})
 	})
 }
+
+// TestFindUpCeiling covers CONFORMIST_CEILING_DIRECTORIES, which bounds the
+// upward config-discovery walk (FindUp) the way git's GIT_CEILING_DIRECTORIES
+// bounds its .git search. Without it, discovery escapes into an ancestor config
+// (the conformist#15 footgun); with it, the walk stops before entering the
+// ceiling.
+func TestFindUpCeiling(t *testing.T) {
+	as := require.New(t)
+
+	// EvalSymlinks so comparisons match eachDir's canonical handling (e.g. macOS
+	// /tmp -> /private/tmp).
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	as.NoError(err)
+
+	deep := filepath.Join(root, "a", "b", "c")
+	as.NoError(os.MkdirAll(deep, 0o755))
+	// An ancestor config that upward discovery would otherwise find.
+	as.NoError(os.WriteFile(filepath.Join(root, "conformist.toml"), []byte{}, 0o600))
+
+	t.Run("escapes upward to an ancestor config without a ceiling", func(t *testing.T) {
+		t.Setenv("CONFORMIST_CEILING_DIRECTORIES", "")
+
+		path, dir, findErr := config.FindUp(deep, "conformist.toml")
+		as.NoError(findErr)
+		as.Equal(filepath.Join(root, "conformist.toml"), path)
+		as.Equal(root, dir)
+	})
+
+	t.Run("ceiling stops the walk before the ancestor config", func(t *testing.T) {
+		t.Setenv("CONFORMIST_CEILING_DIRECTORIES", filepath.Join(root, "a"))
+
+		_, _, findErr := config.FindUp(deep, "conformist.toml")
+		as.Error(findErr, "discovery must not enter the ceiling dir or above")
+	})
+
+	t.Run("the start dir is searched even when it is the ceiling", func(t *testing.T) {
+		startCfg := filepath.Join(deep, "conformist.toml")
+		as.NoError(os.WriteFile(startCfg, []byte{}, 0o600))
+		t.Cleanup(func() { _ = os.Remove(startCfg) })
+
+		t.Setenv("CONFORMIST_CEILING_DIRECTORIES", deep)
+
+		path, _, findErr := config.FindUp(deep, "conformist.toml")
+		as.NoError(findErr)
+		as.Equal(startCfg, path)
+	})
+
+	t.Run("a leading empty entry disables symlink resolution for the rest", func(t *testing.T) {
+		// `:<path>` marks <path> as already-canonical; for a non-symlink path it
+		// still functions as a ceiling (GIT_CEILING_DIRECTORIES semantics).
+		t.Setenv("CONFORMIST_CEILING_DIRECTORIES", string(os.PathListSeparator)+filepath.Join(root, "a"))
+
+		_, _, findErr := config.FindUp(deep, "conformist.toml")
+		as.Error(findErr)
+	})
+}

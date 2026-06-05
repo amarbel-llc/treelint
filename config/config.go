@@ -613,27 +613,89 @@ func dirContains(parent, child string) bool {
 	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
 }
 
+// configCeilingDirs parses CONFORMIST_CEILING_DIRECTORIES into the set of
+// directories at which upward discovery (eachDir) must stop. It mirrors git's
+// GIT_CEILING_DIRECTORIES semantics: a colon-separated list of absolute paths;
+// each entry is symlink-resolved for comparison, except that an empty entry
+// turns off resolution for the entries that follow it (so a leading empty entry
+// marks subsequent paths as already-canonical, as in
+// `/maybe/symlink::/very/slow/non/symlink`). Relative entries are ignored.
+//
+// As with git, the legacy TREELINT_ prefix is honored transitively: NewViper
+// copies any TREELINT_CEILING_DIRECTORIES into CONFORMIST_CEILING_DIRECTORIES.
+func configCeilingDirs() map[string]struct{} {
+	raw := os.Getenv("CONFORMIST_CEILING_DIRECTORIES")
+	if raw == "" {
+		return nil
+	}
+
+	set := make(map[string]struct{})
+	resolve := true
+
+	for _, entry := range strings.Split(raw, string(os.PathListSeparator)) {
+		if entry == "" {
+			// An empty entry disables symlink resolution for subsequent entries.
+			resolve = false
+
+			continue
+		}
+
+		if !filepath.IsAbs(entry) {
+			continue
+		}
+
+		if resolve {
+			if resolved, err := filepath.EvalSymlinks(entry); err == nil {
+				entry = resolved
+			}
+		}
+
+		set[filepath.Clean(entry)] = struct{}{}
+	}
+
+	return set
+}
+
+// eachDir returns searchDir followed by each of its ancestor directories, up
+// toward the filesystem root. The upward walk stops before entering any
+// directory named in CONFORMIST_CEILING_DIRECTORIES, mirroring how git's
+// GIT_CEILING_DIRECTORIES bounds its `.git` search: a ceiling directory (and
+// everything above it) is not visited, but searchDir itself is always included
+// even if it is a ceiling. With no ceiling set the walk reaches the root, so the
+// default behavior is unchanged.
 func eachDir(path string) (paths []string) {
-	path, err := filepath.Abs(path)
+	abs, err := filepath.Abs(path)
 	if err != nil {
 		return
 	}
 
-	paths = []string{path}
+	ceilings := configCeilingDirs()
 
-	if path == "/" {
-		return
+	// Compare canonical paths against the resolved ceilings, as git compares
+	// against the real working directory. Only do this when a ceiling is in
+	// play, so the ceiling-free path stays byte-for-byte as before.
+	if len(ceilings) > 0 {
+		if resolved, resolveErr := filepath.EvalSymlinks(abs); resolveErr == nil {
+			abs = resolved
+		}
 	}
 
-	for i := len(path) - 1; i >= 0; i-- {
-		if path[i] == os.PathSeparator {
-			path = path[:i]
-			if path == "" {
-				path = "/"
-			}
+	root := string(os.PathSeparator)
+	paths = []string{abs}
+	path = abs
 
-			paths = append(paths, path)
+	for path != root {
+		parent := filepath.Dir(path)
+		if parent == path {
+			break
 		}
+
+		if _, blocked := ceilings[parent]; blocked {
+			break
+		}
+
+		paths = append(paths, parent)
+		path = parent
 	}
 
 	return

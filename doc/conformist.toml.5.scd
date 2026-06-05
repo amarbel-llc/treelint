@@ -134,6 +134,15 @@ unset.
 *CONFORMIST_CONFIG*
 	Path to the config file, overriding upward discovery.
 
+*CONFORMIST_CEILING_DIRECTORIES*
+	A colon-separated list of absolute paths at which the upward search for a
+	config file stops, mirroring *git*'s _GIT_CEILING_DIRECTORIES_: conformist
+	will not ascend into any listed directory (so that directory and everything
+	above it is never searched), though the starting directory is always
+	searched. Entries are symlink-resolved for comparison; an empty entry turns
+	off resolution for the entries that follow it. Use it to stop conformist
+	picking up a config from outside the project (e.g. an enclosing monorepo).
+
 # EXAMPLES
 
 ```
