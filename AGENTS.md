@@ -99,7 +99,8 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
   (shellcheck, ruff, statix, deadnix, typos, yamllint, …), this holds the
   **eng-convention enforcers** conformist runs on itself: `eng-versioning`,
   `justfile-default`, `justfile-recipe-names`, `flake-outputs`, `git-remotes`,
-  `git-default-branch`, `sweatfile`.
+  `git-default-branch`, `sweatfile`, `agents-md` (CLAUDE.md→AGENTS.md migration,
+  check + repair).
 - `nix/conformist.nix` — conformist's own self-config (sandboxed, file-based
   checks). `nix/conformist-impure.nix` — the impure git-state checks (e.g.
   `git-remotes`) that need a live `.git` and so run via `just lint-worktree`

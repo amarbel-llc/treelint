@@ -14,4 +14,9 @@
   linters.git-remotes.enable = true;
   linters.git-default-branch.enable = true;
   linters.sweatfile.enable = true;
+
+  # agents-md repair runs `git mv` (needs .git) and the check must see the real
+  # CLAUDE.md symlink in the working tree, not a /nix/store copy — so it lives in
+  # the impure lane. conformist is already migrated, so the check passes (#18).
+  linters.agents-md.enable = true;
 }
