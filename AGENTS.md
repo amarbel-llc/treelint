@@ -45,6 +45,12 @@ not run `just`/`just lint` again right before merging.
 - `just update-go` — `go mod tidy` then regenerate gomod2nix.
 - `just explore-show-config` — emit conformist's own generated `conformist.toml`
   from the Nix module without a full check run (debugging the module).
+- `just debug-bench-backends [iterations]` (positional, e.g. `just
+  debug-bench-backends 5`) — microbench the native (godyn) vs bga build backends
+  across `cold`/`warm`/`leaf`/`found` edit-locality phases,
+  emitting per-build durations to stats-me as `gobuild.conformist.<backend>.<phase>`
+  timers (a protocol shared with igloo's dewey bench; uses `nixgc` for cold
+  rebuilds). Diagnostic only — not in the CI lane.
 - `just run-nix -- <args>` — `nix run . -- <args>`.
 - `just bump-version` / `just tag` / `just release` — versioning (release only
   from `master`).
@@ -118,7 +124,9 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
 
 - Inputs: `igloo` (amarbel-llc/nixpkgs fork, source of the version-injecting
   `buildGoApplication` **and** `pkgs.go` — the Go toolchain, 1.26.3 — plus the
-  `buildGoAuto`/`godyn-gen` native-build tooling, igloo#29), `nixpkgs-master`
+  `buildGoAuto`/`godyn-gen` native-build tooling and `nixgc` (targeted store GC
+  the build-backend bench uses to force cold rebuilds), igloo#29/#28),
+  `nixpkgs-master`
   (pinned, source of the devShell Go dev tools `gofumpt`/`golangci-lint`/`gopls`;
   no longer the `go` source), `utils`.
 - `packages.{default,conformist}` — a `symlinkJoin` of the binary

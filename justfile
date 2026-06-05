@@ -71,6 +71,173 @@ explore-show-config:
       'let f = builtins.getFlake (toString ./.); s = builtins.currentSystem; p = import f.inputs.igloo { system = s; }; in (f.lib.evalModule p { imports = [ ./nix/conformist.nix ]; package = f.packages.${s}.conformist; }).config.build.configFile')
     cat "$out"
 
+# --- debug ---
+
+# Build-backend microbench: godyn (native, per-package CA) vs buildGoApplication
+# (bga) across four edit-locality phases, emitting wall-clock build durations to
+# stats-me (stats-me-clients(1)) as |ms timers named
+# gobuild.conformist.<backend>.<phase>. This name scheme is a protocol shared
+# with igloo's dewey bench so numbers are directly comparable (igloo#28/#29).
+# Uses igloo's nixgc (nixgc.1) to force genuinely cold rebuilds. EXPECTATION:
+# cold favors bga (one `go build`, no per-package overhead); godyn wins the
+# leaf/found incremental edits (recompiles only the changed dependency cone).
+# Diagnostic only — not wired into any aggregate / the CI lane.
+[group("debug")]
+debug-bench-backends iterations="3":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    iters={{ iterations }}
+    # just params are positional (`just debug-bench-backends 5`), so a stray
+    # `iterations=5` would arrive as a literal string and silently empty the
+    # `seq` loops — fail loudly instead.
+    case "$iters" in
+        '' | *[!0-9]*)
+            echo "debug-bench-backends: iterations must be a positive integer, e.g. 'just debug-bench-backends 5' (got '$iters')" >&2
+            exit 1
+            ;;
+    esac
+    native_target=".#conformist-dev"
+    bga_target=".#conformist-dev.passthru.bga"
+    leaf_file="cmd/init/init.go"   # 1 dependent (init->cmd->main): small cone
+    found_file="config/config.go"  # 4 dependents: large transitive cone
+
+    host="${STATSD_HOST:-127.0.0.1}"; [ -n "$host" ] || host="127.0.0.1"
+    port="${STATSD_PORT:-8125}"
+    results="$(mktemp)"
+    # Always drop the temp file and undo any in-flight edit, even on interrupt.
+    trap 'rm -f "$results"; git checkout -- "$leaf_file" "$found_file" 2>/dev/null || true' EXIT
+
+    # The edit phases revert via `git checkout`, so refuse to clobber real work.
+    for f in "$leaf_file" "$found_file"; do
+        if [ -n "$(git status --porcelain -- "$f")" ]; then
+            echo "debug-bench-backends: $f is dirty; commit or stash it before benching" >&2
+            exit 1
+        fi
+    done
+
+    # statsd timing packet (stats-me-clients(1)); fire-and-forget UDP, no nc dep.
+    statsd() { echo "$1:$2|ms" > "/dev/udp/$host/$port" 2>/dev/null || true; }
+
+    echo "resolving nixgc from the locked igloo input..."
+    nixgc="$(nix build --no-link --print-out-paths --impure --expr \
+      'let f = builtins.getFlake (toString ./.); s = builtins.currentSystem; p = import f.inputs.igloo { system = s; }; in p.nixgc')/bin/nixgc"
+
+    # Time one `nix build <target> --no-link`; echo elapsed milliseconds.
+    timed_build() {
+        local target="$1" t0 t1
+        t0=$(date +%s%N)
+        nix build "$target" --no-link >/dev/null 2>&1 \
+            || { echo "debug-bench-backends: build failed for $target" >&2; exit 1; }
+        t1=$(date +%s%N)
+        echo $(( (t1 - t0) / 1000000 ))
+    }
+
+    # One cold sample for a backend: capture the live output, nixgc-reap it, time
+    # the from-scratch rebuild. godyn outputs are content-addressed (referenced by
+    # sibling .drvs) -> --with-referrers + seed the .drv; bga is one input-addressed
+    # derivation -> seed the output alone. If the reap frees nothing, a live GC root
+    # still anchors the closure (so the "rebuild" is a warm cache hit, not cold) —
+    # skip the sample instead of emitting a bogus fast "cold" number. See the
+    # result/keep-derivations note above the cold lane.
+    cold_sample() {  # backend target with_referrers(yes|no)
+        local backend="$1" target="$2" with_ref="$3" out drv reap_out
+        out=$(nix build "$target" --no-link --print-out-paths)
+        # The build we just ran holds a temporary GC root
+        # (/nix/var/nix/temproots/<pid>) on its outputs. It stays LIVE until the
+        # daemon/client releases it, and a live temproot cannot be swept — so first
+        # `sleep` to let it go stale, then force a root enumeration (which deletes
+        # stale temproot files) so nixgc's alive-set doesn't count it and refuse the
+        # reap (igloo#28). A *concurrent* build's live temproot still can't be
+        # cleared — the reap-freed-nothing guard below keeps that case honest.
+        sleep 2
+        nix-store -q --roots "$out" >/dev/null 2>&1 || true
+        if [ "$with_ref" = yes ]; then
+            drv=$(nix-store -q --deriver "$out")
+            reap_out=$("$nixgc" reap --with-referrers "$out" "$drv" 2>&1) || true
+        else
+            reap_out=$("$nixgc" reap "$out" 2>&1) || true
+        fi
+        echo "$reap_out"
+        if echo "$reap_out" | grep -qE 'reaped 0 path|nothing to reap'; then
+            echo "  $backend cold: SKIPPED — reap freed nothing; a live GC root still anchors the closure (rebuild would be a cache hit, not cold)" >&2
+            return 0
+        fi
+        record "$backend" cold "$(timed_build "$target")"
+    }
+
+    # Append a unique comment to a file (a real byte change — nix is
+    # content-addressed, so mtime alone won't invalidate), time the rebuild,
+    # revert. Echoes ms.
+    edit_build() {
+        local file="$1" target="$2" ms
+        printf '\n// debug-bench-backends %s\n' "$(date +%s%N)" >> "$file"
+        ms=$(timed_build "$target")
+        git checkout -- "$file"
+        echo "$ms"
+    }
+
+    record() {  # backend phase ms
+        echo "$1 $2 $3" >> "$results"
+        statsd "gobuild.conformist.$1.$2" "$3"
+        printf '  %-7s %-6s %7s ms\n' "$1" "$2" "$3"
+    }
+
+    echo "warm-building both backends (baseline)..."
+    nix build "$native_target" --no-link >/dev/null 2>&1
+    nix build "$bga_target" --no-link >/dev/null 2>&1
+
+    # nixgc only cold-nukes paths that no live GC root anchors. A stale `result`
+    # symlink (e.g. from a prior `just build-nix`) roots a conformist closure, and
+    # with the system's keep-derivations=true that transitively keeps the binary's
+    # link .drv — and its per-package CA compile inputSrcs — alive, defeating the
+    # reap. Remove it; the bench builds with --no-link so it never recreates one.
+    # On a contended store the reap can still be refused by live temproots held by
+    # other in-flight nix builds — nixgc respects those by design; the cold_sample
+    # guard then skips honestly. Making cold robust on a busy host: conformist#21.
+    if [ -L result ]; then rm -f result; fi
+
+    echo "=== cold: full rebuild after nixgc reap ==="
+    for _ in $(seq 1 "$iters"); do
+        cold_sample native "$native_target" yes
+        cold_sample bga    "$bga_target"    no
+    done
+
+    echo "=== warm: no-op rebuild ==="
+    for _ in $(seq 1 "$iters"); do
+        record native warm "$(timed_build "$native_target")"
+        record bga    warm "$(timed_build "$bga_target")"
+    done
+
+    echo "=== leaf: edit $leaf_file (small cone) then rebuild ==="
+    for _ in $(seq 1 "$iters"); do
+        record native leaf "$(edit_build "$leaf_file" "$native_target")"
+        record bga    leaf "$(edit_build "$leaf_file" "$bga_target")"
+    done
+
+    echo "=== found: edit $found_file (large cone) then rebuild ==="
+    for _ in $(seq 1 "$iters"); do
+        record native found "$(edit_build "$found_file" "$native_target")"
+        record bga    found "$(edit_build "$found_file" "$bga_target")"
+    done
+
+    echo
+    echo "=== summary  ms: min / median / mean / max  over $iters iter(s) ==="
+    echo "emitted to stats-me as gobuild.conformist.<backend>.<phase> (query: stats-me-query)"
+    echo "note: cold favors bga; godyn (native) wins the leaf/found incremental edits"
+    for b in native bga; do
+        for ph in cold warm leaf found; do
+            awk -v b="$b" -v p="$ph" '$1==b && $2==p {print $3}' "$results" | sort -n | awk -v b="$b" -v p="$ph" '
+                {a[NR]=$1; s+=$1}
+                END{
+                    if (NR>0) {
+                        n=NR; if (n%2) med=a[(n+1)/2]; else med=(a[n/2]+a[n/2+1])/2;
+                        printf "  %-7s %-6s %7d / %7.0f / %7.0f / %7d\n", b, p, a[1], med, s/n, a[n]
+                    }
+                }'
+        done
+    done
+
 # --- verify ---
 
 verify: verify-godyn-graph
