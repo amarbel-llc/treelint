@@ -46,6 +46,11 @@ schema = 3
     hash = 'sha256-VBkCZLI90PhMasftGw3403IqoV7d3E5WEGAIVrN5xQM='
     goVersion = '1.18'
 
+  [mod.'github.com/cpuguy83/go-md2man/v2']
+    version = 'v2.0.6'
+    hash = 'sha256-wJnHgp+NPchXkR71ARLMjo4VryzgGkz2tYWPsC+3eFo='
+    goVersion = '1.12'
+
   [mod.'github.com/davecgh/go-spew']
     version = 'v1.1.2-0.20180830191138-d8f796af33cc'
     hash = 'sha256-fV9oI51xjHdOmEx6+dlq7Ku2Ag+m/bmbzPo6A4Y74qc='
@@ -122,6 +127,10 @@ schema = 3
     version = 'v0.4.7'
     hash = 'sha256-rDcdNYH6ZD8KouyyiZCUEy8JrjOQoAkxHBhugrfHjFo='
     goVersion = '1.18'
+
+  [mod.'github.com/russross/blackfriday/v2']
+    version = 'v2.1.0'
+    hash = 'sha256-R+84l1si8az5yDqd5CYcFrTyNZ1eSYlpXKq6nFt4OTQ='
 
   [mod.'github.com/sagikazarmark/locafero']
     version = 'v0.11.0'

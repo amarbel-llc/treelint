@@ -1,0 +1,145 @@
+# AGENTS.md
+
+This file provides guidance to Claude Code (claude.ai/code) and other coding
+agents when working with code in this repository. `CLAUDE.md` is a symlink to
+this file.
+
+## What conformist is
+
+conformist is **the linter and formatter multiplexer**: a clean copy of
+[treefmt](https://github.com/numtide/treefmt) v2.5.0 (independent project, not a
+GitHub fork) that adds first-class _linting_ on top of treefmt's formatter
+multiplexing, per `docs/rfcs/0001-linter-support-and-check-repair-modes.md`. It
+walks the tree, matches files to tools by glob, and runs matched tools in
+parallel, only on files that changed since the last run.
+
+The defining extension over treefmt is the `[linter.<name>]` config section
+(parallel to `[formatter.<name>]`), the `conformist check` subcommand, and
+**repair** vs **check** modes. A linter's `command` is a read-only check (must
+exit non-zero on findings); an optional `repair-command` applies autofixes.
+
+## Build / test / lint commands
+
+Justfile recipes are **paved paths** — prefer them over ad-hoc
+`go build`/`go test`/`nix build`. The default recipe is the local CI lane and is
+exactly what `spinclass merge-this-session`'s pre-merge hook runs (`just`), so do
+not run `just`/`just lint` again right before merging.
+
+- `just` (= `just default` = `build lint`) — full local CI lane.
+- `just build` — `build-gomod2nix` + `build-go` + `build-nix`.
+- `just build-go` — fast out-of-nix `go build -o build/conformist .` (version
+  stays `dev`/`unknown`; only the nix build injects real version/commit).
+- `just test` / `just test-go` — `nix develop --command go test ./...`. Run a
+  single test with `nix develop --command go test ./format -run TestName`.
+- `just lint` — `lint-fmt` (sandboxed `checks.formatting`, file-based linters) +
+  `lint-worktree` (impure git-state linters against the working tree, where
+  `.git` is available).
+- `just codemod-fmt` — `nix fmt` (write/repair mode on conformist's own tree).
+- `just build-gomod2nix` — regenerate `gomod2nix.toml`; run after changing deps.
+- `just update-go` — `go mod tidy` then regenerate gomod2nix.
+- `just explore-show-config` — emit conformist's own generated `conformist.toml`
+  from the Nix module without a full check run (debugging the module).
+- `just run-nix -- <args>` — `nix run . -- <args>`.
+- `just bump-version` / `just tag` / `just release` — versioning (release only
+  from `master`).
+
+`conformist check` exits 0 when clean, 1 on findings, 2 on operational error.
+
+## Architecture
+
+### Go program (the engine)
+
+- `main.go` → `cmd.NewRoot(version, commit)`. `version`/`commit` are injected at
+  build time by the `amarbel-llc/nixpkgs` (igloo) fork's `buildGoApplication`
+  (`-X main.version` from `version.env`, `-X main.commit` from `self.rev`); a
+  plain `go build` leaves them `dev`/`unknown`. See `eng-versioning(7)`.
+- `cmd/` — cobra commands. `root.go` is the entry point: the bare command
+  (`conformist <paths...>`, `ArbitraryArgs`) runs format/repair via `format.Run`;
+  subcommands `check` (`check.go`) and `version` (`version.go`) dispatch
+  separately; a hidden `gen-man` (`genman.go`) renders the section-1 man pages
+  from the cobra tree at build time; `--init` writes a starter config via
+  `cmd/init`, `--completion` emits shell completions. Config flags live on
+  **persistent** flags so `check` inherits tree-root/walk/excludes/config-file.
+- `config/` — viper + TOML config loading. Config discovery searches upward for
+  `conformist.toml`/`.conformist.toml`, with `treelint.toml` as a legacy
+  fallback from the pre-rename `treelint` name (env: `CONFORMIST_CONFIG`).
+- `format/` — the core pipeline. Files are matched to tools by glob, then batched
+  by their **formatter sequence** (a `batchKey` like `deadnix:statix:nixfmt`);
+  `scheduler.go` runs batches concurrently (errgroup limited to `NumCPU`).
+  Per-file **signatures** (md5 of the formatter sequence + file mod-time/size)
+  drive change-detection caching so unchanged files are skipped. `check.go` /
+  `repair.go` are the two modes; `sandbox.go` implements the
+  copy-and-diff strategy that lets fix-only formatters be _checked_ without
+  writing to the source tree (so checks work on a read-only tree); `linter.go`,
+  `composite.go`, `glob.go` round out matching and linter execution.
+- `walk/` — pluggable tree walkers: `filesystem.go`, `git.go`, `jujutsu.go`,
+  `stdin.go`, selected by `type_enum.go`. `walk/cache/` is the bbolt-backed
+  (`go.etcd.io/bbolt`) format-signature cache.
+- `stats/`, `git/`, `jujutsu/` — run statistics and VCS helpers.
+- `test/` — integration harness and fixtures (`test/config`, `test/examples`).
+  Fixtures under `test/**` are **deliberately mis-formatted**; they are excluded
+  from conformist's own self-lint and must not be reformatted.
+
+### Nix module library (`nix/`)
+
+conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
+**self-consumed**: conformist lints/formats its own tree with its own module
+(no treefmt-nix dependency — issue #4).
+
+- `nix/default.nix` — the pure library: `evalModule` / `submoduleWith` /
+  `mkConfigFile` / `mkWrapper`, plus `mkFormatterModule` (ported ~verbatim from
+  treefmt-nix, so `programs/<name>.nix` modules port unchanged) and its linter
+  analog `mkLinterModule` (emits `[linter.<name>]` with optional
+  `repair-command`/`repair-options`). `module-options.nix` declares the settings
+  surface and the `build.{wrapper,check,configFile}` outputs.
+- `nix/programs/` + `programs.nix` — the formatter registry.
+- `nix/linters/` + `linters.nix` — the linter registry. Beyond general linters
+  (shellcheck, ruff, statix, deadnix, typos, yamllint, …), this holds the
+  **eng-convention enforcers** conformist runs on itself: `eng-versioning`,
+  `justfile-default`, `justfile-recipe-names`, `flake-outputs`, `git-remotes`,
+  `git-default-branch`, `sweatfile`.
+- `nix/conformist.nix` — conformist's own self-config (sandboxed, file-based
+  checks). `nix/conformist-impure.nix` — the impure git-state checks (e.g.
+  `git-remotes`) that need a live `.git` and so run via `just lint-worktree`
+  against the working tree rather than the sandboxed `checks.formatting`.
+- `nix/checks.nix` — eval-only smoke test forcing module eval + config generation
+  for every ported formatter/linter (`checks.<sys>.{formatter-*,linter-*}`).
+
+### Flake outputs (`flake.nix`, `flake-module.nix`)
+
+- Inputs: `igloo` (amarbel-llc/nixpkgs fork, source of the version-injecting
+  `buildGoApplication`), `nixpkgs-master` (pinned, source of `go_1_26` matching
+  `go.mod`'s toolchain), `utils`.
+- `packages.{default,conformist}` — a `symlinkJoin` of the binary
+  (`buildGoApplication`, `doCheck = false`; integration tests need formatter
+  binaries on PATH and run via `just test-go`) and the `manpages` derivation.
+  `packages.manpages` is the man pages alone; `conformist-impure-config` is the
+  generated config for `lint-worktree`. Self-consumption evals use the bare
+  binary, not the join.
+- **Man pages** (`doc/`, `eng-manpages(7)`): hand-written scdoc for sections
+  2–9 (`doc/conformist.toml.5.scd`, `doc/conformist.7.scd`) plus the codegen
+  section-1 reference via `conformist gen-man`, all compiled by the `manpages`
+  Nix derivation — the build is the man-page lint (PRINCIPLE 4), there is no
+  justfile recipe. Note `doc/` (man-page sources) is distinct from `docs/`
+  (the mkdocs prose site).
+- `formatter` (= `nix fmt` wrapper), `checks.formatting` (sandboxed read-only
+  gate) + the `formatter-*`/`linter-*` registry smoke tests.
+- `lib` = the Nix module library (`conformist.lib.evalModule pkgs { … }`);
+  `flakeModule` = `flake-module.nix` (flake-parts `perSystem.conformist`).
+  Downstream consumers MUST set `conformist.package` — conformist is not in
+  nixpkgs, so the module's `package` option has no default.
+
+## Conventions and gotchas
+
+- **`nix build` against a dirty tree only sees git-tracked files.** `git add`
+  new `.go`/`.nix` files (staging is enough, no commit) before `nix build`, or
+  you'll get phantom "cannot find package" errors.
+- **Single version source of truth:** `version.env` (`CONFORMIST_VERSION`). Bump
+  via `just bump-version`; never hand-edit ldflags. See `eng-versioning(7)`.
+- This repo enforces eng-wide conventions on itself. Before adding a justfile
+  recipe, changing release tagging, or touching the version/flake wiring, read
+  the matching `eng-*(7)` manpage (`eng-design_patterns-justfile(7)`,
+  `eng-versioning(7)`, `eng-manpages(7)`) — the linters in `nix/linters/` will
+  fail the build otherwise.
+- `docs/` (mkdocs site + RFCs) is prose and is excluded from code formatters; do
+  not expect `nix fmt` to touch it.
