@@ -148,8 +148,8 @@ func SetFlags(fs *pflag.FlagSet) {
 	)
 	fs.StringP(
 		"on-unmatched", "u", "info",
-		"Log paths that did not match any formatters at the specified log level. Possible values are "+
-			"<debug|info|warn|error|fatal>. (env $CONFORMIST_ON_UNMATCHED)",
+		"Log paths that did not match any formatters at the specified log level. Possible values: "+
+			"debug, info, warn, error, fatal. (env $CONFORMIST_ON_UNMATCHED)",
 	)
 	fs.Bool(
 		"stdin", false,
@@ -181,7 +181,7 @@ func SetFlags(fs *pflag.FlagSet) {
 	fs.String(
 		"walk", "auto",
 		"The method used to traverse the files within the tree root. Currently supports "+
-			"<auto|git|jujutsu|filesystem>. (env $CONFORMIST_WALK)",
+			"auto, git, jujutsu, or filesystem. (env $CONFORMIST_WALK)",
 	)
 	fs.StringP(
 		"working-dir", "C", ".",

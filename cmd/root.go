@@ -31,7 +31,7 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 
 	// create our root command
 	cmd := &cobra.Command{
-		Use:     programName + " <paths...>",
+		Use:     programName + " [paths...]",
 		Short:   "The linter and formatter multiplexer",
 		Version: version + "+" + commit,
 		// Positional args are paths to format/check. Without an explicit Args
