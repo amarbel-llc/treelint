@@ -9,8 +9,10 @@
     # amarbel-llc/nixpkgs#31.
     igloo.url = "github:amarbel-llc/igloo";
 
-    # Pinned plain nixpkgs as the source of go_1_26 (matches go.mod's
-    # toolchain directive). Mirrors moxy, the canonical reference.
+    # Pinned plain nixpkgs, source of the Go dev tooling in the devShell
+    # (gofumpt/golangci-lint/gopls). The Go *toolchain* itself now comes from
+    # igloo's `pkgs.go` so the buildGoApplication and native (godyn) backends
+    # share one compiler — see igloo#29 / buildGoAuto.
     nixpkgs-master.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
 
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
@@ -46,7 +48,10 @@
           pwd = ./.;
           modules = ./gomod2nix.toml;
           subPackages = [ "." ];
-          go = pkgs-master.go_1_26;
+          # igloo's pkgs.go (1.26.3), shared with the native (godyn) backend so
+          # both build paths use one compiler (igloo#29). go.mod is `go 1.26.1`;
+          # GOTOOLCHAIN = "local" pins to pkgs.go rather than fetching a toolchain.
+          go = pkgs.go;
           GOTOOLCHAIN = "local";
           # Integration tests need formatter executables on PATH; run them via
           # `just test-go` / bats outside the sandbox, not in the package build.
@@ -111,6 +116,33 @@
           };
         };
 
+        # Native (godyn) build of the bare binary, driven by the committed
+        # godyn-graph.json (igloo#29). buildGoAuto with strategy = "dev" selects
+        # igloo's per-package godyn backend (`go tool compile`/`link` directly,
+        # no `go build`) for a faster edit loop; strategy = "ci" would route back
+        # to buildGoApplication. The default package stays the bga + manpages
+        # join above — this dev target is just bin/conformist, no man pages.
+        #
+        # subPackages / GOTOOLCHAIN are buildGoApplication-only knobs and so live
+        # under bgaArgs (the godyn backend ignores them: its scope is the graph,
+        # and it calls the toolchain directly). go = pkgs.go matches conformistBin
+        # so both backends share one compiler. version/commit are auto-injected
+        # from version.env + self.rev — no ldflags here.
+        conformist-dev = pkgs.buildGoAuto {
+          pname = "conformist";
+          src = self;
+          graphFile = ./godyn-graph.json;
+          modules = ./gomod2nix.toml;
+          strategy = "dev";
+          bgaArgs = {
+            pwd = ./.;
+            subPackages = [ "." ];
+            go = pkgs.go;
+            GOTOOLCHAIN = "local";
+            doCheck = false;
+          };
+        };
+
         # conformist self-consuming its own module. Replaces the former
         # treefmt-nix `treefmtEval`. The bare binary (conformistBin) is used here:
         # the formatter wrapper and check gate only need the executable, not the
@@ -142,6 +174,9 @@
         packages = {
           default = conformist;
           conformist = conformist;
+          # Native (godyn) build of the bare binary for the fast edit loop
+          # (`nix build .#conformist-dev`); no man pages. See conformist-dev above.
+          conformist-dev = conformist-dev;
           # The compiled man pages on their own, for inspection
           # (`nix build .#manpages`); also bundled into the conformist package.
           inherit manpages;
@@ -189,7 +224,11 @@
             # mkGoEnv puts the gomod2nix-regen `go` wrapper + the gomod2nix CLI
             # on PATH, so `just build-gomod2nix` / `just update-go` work.
             (pkgs.mkGoEnv { pwd = ./.; })
-            pkgs-master.go_1_26
+            # igloo's pkgs.go (1.26.3), matching conformistBin + the godyn
+            # backend (igloo#29). godyn-gen runs `go list -deps -json` against
+            # this go, so `just build-godyn-graph` regenerates the committed graph.
+            pkgs.go
+            pkgs.godyn-gen
             pkgs-master.gofumpt
             pkgs-master.golangci-lint
             pkgs-master.gopls

@@ -25,8 +25,9 @@ Justfile recipes are **paved paths** — prefer them over ad-hoc
 exactly what `spinclass merge-this-session`'s pre-merge hook runs (`just`), so do
 not run `just`/`just lint` again right before merging.
 
-- `just` (= `just default` = `build lint`) — full local CI lane.
-- `just build` — `build-gomod2nix` + `build-go` + `build-nix`.
+- `just` (= `just default` = `build verify lint`) — full local CI lane.
+- `just build` — `build-gomod2nix` + `build-godyn-graph` + `build-go` +
+  `build-nix`.
 - `just build-go` — fast out-of-nix `go build -o build/conformist .` (version
   stays `dev`/`unknown`; only the nix build injects real version/commit).
 - `just test` / `just test-go` — `nix develop --command go test ./...`. Run a
@@ -116,14 +117,24 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
 ### Flake outputs (`flake.nix`, `flake-module.nix`)
 
 - Inputs: `igloo` (amarbel-llc/nixpkgs fork, source of the version-injecting
-  `buildGoApplication`), `nixpkgs-master` (pinned, source of `go_1_26` matching
-  `go.mod`'s toolchain), `utils`.
+  `buildGoApplication` **and** `pkgs.go` — the Go toolchain, 1.26.3 — plus the
+  `buildGoAuto`/`godyn-gen` native-build tooling, igloo#29), `nixpkgs-master`
+  (pinned, source of the devShell Go dev tools `gofumpt`/`golangci-lint`/`gopls`;
+  no longer the `go` source), `utils`.
 - `packages.{default,conformist}` — a `symlinkJoin` of the binary
   (`buildGoApplication`, `doCheck = false`; integration tests need formatter
   binaries on PATH and run via `just test-go`) and the `manpages` derivation.
   `packages.manpages` is the man pages alone; `conformist-impure-config` is the
   generated config for `lint-worktree`. Self-consumption evals use the bare
   binary, not the join.
+- `packages.conformist-dev` — the bare binary built via igloo's native (godyn)
+  backend: `buildGoAuto { strategy = "dev"; … }` driven by the committed
+  `godyn-graph.json` (compiles per-package via `go tool compile`/`link`, no
+  manpages — a faster edit loop). `buildGoApplication`-only knobs (`subPackages`,
+  `GOTOOLCHAIN`) pass through `bgaArgs`; `go = pkgs.go` keeps both backends on one
+  compiler. `godyn-graph.json` is the committed Go dependency graph (regenerated
+  by `just build-godyn-graph`, drift-gated by `just verify-godyn-graph`); it
+  captures `cmd/init`'s `//go:embed`. See igloo#29 / `man 7 godyn`.
 - **Man pages** (`doc/`, `eng-manpages(7)`): hand-written scdoc for sections
   2–9 (`doc/conformist.toml.5.scd`, `doc/conformist.7.scd`) plus the codegen
   section-1 reference via `conformist gen-man`, all compiled by the `manpages`

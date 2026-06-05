@@ -1,7 +1,7 @@
 # conformist justfile. Conventions: eng-design_patterns-justfile(7),
 # eng-versioning(7). `default` runs the full local CI lane.
 
-default: build lint
+default: build verify lint
 
 # --- validate (cheap pre-build gate) ---
 
@@ -34,11 +34,20 @@ lint-worktree:
 
 # --- build ---
 
-build: build-gomod2nix build-go build-nix
+build: build-gomod2nix build-godyn-graph build-go build-nix
 
 # Regenerate gomod2nix.toml from go.mod/go.sum. Run after changing deps.
 build-gomod2nix:
     nix develop --command gomod2nix
+
+# Regenerate godyn-graph.json, the Go source dependency graph that drives the
+# native (godyn) build backend (buildGoAuto, igloo#29). CGO off — conformist is
+# pure-Go — for clean file selection; captures cmd/init's //go:embed init.toml.
+# Mirrors build-gomod2nix: run after changing imports/deps/embeds, then commit
+# the regenerated graph. The committed graph is drift-checked by
+# verify-godyn-graph.
+build-godyn-graph:
+    nix develop --command env CGO_ENABLED=0 godyn-gen . godyn-graph.json
 
 # Out-of-nix go build for a fast inner loop. Version/commit stay dev/unknown
 # here; the nix build injects the real values (eng-versioning(7)).
@@ -61,6 +70,26 @@ explore-show-config:
     out=$(nix build --no-link --print-out-paths --impure --expr \
       'let f = builtins.getFlake (toString ./.); s = builtins.currentSystem; p = import f.inputs.igloo { system = s; }; in (f.lib.evalModule p { imports = [ ./nix/conformist.nix ]; package = f.packages.${s}.conformist; }).config.build.configFile')
     cat "$out"
+
+# --- verify ---
+
+verify: verify-godyn-graph
+
+# Drift gate for the committed godyn-graph.json: regenerate the graph into a
+# scratch file and diff it against the committed copy, failing if they differ.
+# Regenerating into a temp file keeps the working tree untouched (unlike
+# build-godyn-graph, which writes in place). Mirrors the spirit of the gomod2nix
+# regen but adds an explicit gate so a stale graph can't reach a merge (igloo#29).
+verify-godyn-graph:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    nix develop --command env CGO_ENABLED=0 godyn-gen . "$tmp"
+    if ! diff -u godyn-graph.json "$tmp"; then
+        echo "verify-godyn-graph: committed godyn-graph.json is stale — run 'just build-godyn-graph' and commit the result." >&2
+        exit 1
+    fi
 
 # --- test ---
 

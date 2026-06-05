@@ -29,8 +29,11 @@
   # apply to formatters and linters alike, so the test/** fixtures (deliberately
   # mis-formatted) are not linted or format-checked.
   settings.excludes = [
-    # Generated / locked — not hand-formatted.
+    # Generated / locked — not hand-formatted. godyn-graph.json is emitted by
+    # godyn-gen and its byte-exact form is asserted by verify-godyn-graph, so a
+    # formatter must never rewrite it.
     "gomod2nix.toml"
+    "godyn-graph.json"
     "flake.lock"
     "go.sum"
     # conformist's test corpus contains files deliberately mis-formatted as
