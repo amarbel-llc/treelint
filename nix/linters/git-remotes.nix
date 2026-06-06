@@ -1,6 +1,8 @@
-# and-so-can-you #8: every git remote MUST use SSH (git@.../ssh://), not HTTPS,
-# to avoid auth failures on push. Whole-tree check (passes-files=false): reads
-# git state via `git remote -v`, takes no file arguments.
+# and-so-can-you #8: every git remote MUST use SSH (git@.../ssh://), not a
+# network transport that needs separate credentials — https://, http://, git://,
+# ftp:// all cause auth failures or insecure fetches on push/pull. Local path /
+# file:// remotes are left alone (no auth concern). Whole-tree check
+# (passes-files=false): reads git state via `git remote -v`, takes no file args.
 #
 # IMPURE: it needs a live .git, which is NOT present in the sandboxed
 # checks.formatting derivation (a /nix/store copy of tracked files). It runs only
@@ -24,9 +26,9 @@ let
       gnused
     ];
     text = ''
-      bad=$(git remote -v | awk '$2 ~ /^https:\/\// {print $1"\t"$2}' | sort -u)
+      bad=$(git remote -v | awk '$2 ~ /^(https?|git|ftp):\/\// {print $1"\t"$2}' | sort -u)
       if [ -n "$bad" ]; then
-        echo "git-remotes(#8): HTTPS remote URL(s) found — use SSH (git@github.com:...):" >&2
+        echo "git-remotes(#8): non-SSH remote URL(s) found — use SSH (git@github.com:... or ssh://):" >&2
         printf '%s\n' "$bad" | sed 's/^/  /' >&2
         exit 1
       fi

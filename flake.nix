@@ -281,6 +281,34 @@
               if ( cd nv && ${cmd} ); then echo "FAIL: flake.nix named version var not flagged" >&2; exit 1; fi
               touch $out
             '';
+
+          # True-positive regression for the git-remotes SSH-only rule
+          # (conformist#8): spin up a throwaway repo and assert the linter passes
+          # all-SSH remotes (scp-like + ssh://) but FLAGS http:// and git://.
+          # lint-worktree only proves conformist's own SSH remotes pass; this
+          # proves the non-SSH schemes actually fire.
+          git-remotes =
+            let
+              cmd = conformistImpureEval.config.settings.linter.git-remotes.command;
+            in
+            pkgs.runCommand "conformist-git-remotes-test" { nativeBuildInputs = [ pkgs.git ]; } ''
+              set -eu
+              export HOME=$PWD
+              git init -q repo
+              cd repo
+              # all-SSH remotes (scp-like and ssh://) pass.
+              git remote add origin git@github.com:o/r.git
+              git remote add up ssh://git@example.com/o/r.git
+              ${cmd} || { echo "FAIL: all-SSH remotes were flagged" >&2; exit 1; }
+              # an http:// remote is flagged.
+              git remote add bad http://example.com/o/r.git
+              if ${cmd}; then echo "FAIL: http:// remote not flagged" >&2; exit 1; fi
+              git remote remove bad
+              # a git:// remote is flagged.
+              git remote add bad2 git://example.com/o/r.git
+              if ${cmd}; then echo "FAIL: git:// remote not flagged" >&2; exit 1; fi
+              touch $out
+            '';
         };
 
         devShells.default = pkgs-master.mkShell {
