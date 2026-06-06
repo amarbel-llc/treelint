@@ -107,7 +107,7 @@
 
         # Man pages per backend: the default (godyn) package needs no bga build,
         # and the bga fallback needs no ca-derivations.
-        manpages = mkManpages conformist-dev;
+        manpages = mkManpages conformist-native;
         manpagesBga = mkManpages conformistBin;
 
         # The shipped package (DEFAULT): the godyn (native) binary plus its man
@@ -118,10 +118,10 @@
         conformist = pkgs.symlinkJoin {
           name = "conformist";
           paths = [
-            conformist-dev
+            conformist-native
             manpages
           ];
-          meta = (conformist-dev.meta or { }) // {
+          meta = (conformist-native.meta or { }) // {
             mainProgram = "conformist";
           };
         };
@@ -146,7 +146,7 @@
         # godyn-graph.json (igloo#29). buildGoAuto with strategy = "dev" selects
         # igloo's per-package godyn backend (`go tool compile`/`link` directly,
         # no `go build`). This is now the DEFAULT backend: the `conformist` join
-        # above bundles it with man pages, and `.#conformist-dev` exposes the bare
+        # above bundles it with man pages, and `.#conformist-native` exposes the bare
         # binary (no man pages) for the fast inner loop and the backend bench. Its
         # per-package outputs are content-addressed, so building it requires the
         # ca-derivations feature; the input-addressed bga build is `.#conformist-bga`.
@@ -156,7 +156,7 @@
         # and it calls the toolchain directly). go = pkgs.go matches conformistBin
         # so both backends share one compiler. version/commit are auto-injected
         # from version.env + self.rev — no ldflags here.
-        conformist-dev = pkgs.buildGoAuto {
+        conformist-native = pkgs.buildGoAuto {
           pname = "conformist";
           src = self;
           graphFile = ./godyn-graph.json;
@@ -172,13 +172,13 @@
         };
 
         # conformist self-consuming its own module. Replaces the former
-        # treefmt-nix `treefmtEval`. The bare godyn binary (conformist-dev) is used
+        # treefmt-nix `treefmtEval`. The bare godyn binary (conformist-native) is used
         # here — the formatter wrapper and check gate only need the executable, and
         # reusing the default backend avoids a separate bga build during lint.
         # `package` is required because conformist is not in nixpkgs.
         conformistEval = conformistLib.evalModule pkgs {
           imports = [ ./nix/conformist.nix ];
-          package = conformist-dev;
+          package = conformist-native;
         };
 
         # IMPURE self-check config: git-state whole-tree checks (e.g. git-remotes)
@@ -187,7 +187,7 @@
         # `conformist check` against the working tree. See nix/conformist-impure.nix.
         conformistImpureEval = conformistLib.evalModule pkgs {
           imports = [ ./nix/conformist-impure.nix ];
-          package = conformist-dev;
+          package = conformist-native;
         };
 
         # Eval-only smoke test over the full program + linter registries:
@@ -208,9 +208,9 @@
           # a single input-addressed derivation. The former default backend.
           conformist-bga = conformist-bga;
           # The bare godyn binary for the fast edit loop and the backend bench
-          # (`nix build .#conformist-dev`, `.#conformist-dev.passthru.bga`); no man
-          # pages. See conformist-dev above.
-          conformist-dev = conformist-dev;
+          # (`nix build .#conformist-native`, `.#conformist-native.passthru.bga`); no man
+          # pages. See conformist-native above.
+          conformist-native = conformist-native;
           # The compiled man pages on their own, for inspection
           # (`nix build .#manpages`); also bundled into the conformist package.
           inherit manpages;

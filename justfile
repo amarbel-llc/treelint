@@ -97,8 +97,8 @@ debug-bench-backends iterations="3":
             exit 1
             ;;
     esac
-    native_target=".#conformist-dev"
-    bga_target=".#conformist-dev.passthru.bga"
+    native_target=".#conformist-native"
+    bga_target=".#conformist-native.passthru.bga"
     leaf_file="cmd/init/init.go"   # 1 dependent (init->cmd->main): small cone
     found_file="config/config.go"  # 4 dependents: large transitive cone
 
