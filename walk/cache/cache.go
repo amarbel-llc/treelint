@@ -13,6 +13,10 @@ import (
 
 const (
 	bucketPaths = "paths"
+	// bucketWholeTree caches whole-tree (passes-files=false) checks: one entry
+	// per check name, value = the check's combined config + matched-file-set
+	// signature (conformist#16).
+	bucketWholeTree = "wholetree"
 )
 
 // Path returns a unique local cache file path for the given root string, using its SHA-256 hash.
@@ -44,11 +48,12 @@ func Open(root string) (*bolt.DB, error) {
 		return nil, fmt.Errorf("failed to open cache db at %s: %w", path, err)
 	}
 
-	// ensure bucket exist
+	// ensure buckets exist
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(bucketPaths))
-		if err != nil {
-			return fmt.Errorf("failed to create bucket: %w", err)
+		for _, name := range []string{bucketPaths, bucketWholeTree} {
+			if _, err := tx.CreateBucketIfNotExists([]byte(name)); err != nil {
+				return fmt.Errorf("failed to create bucket %q: %w", name, err)
+			}
 		}
 
 		return nil
@@ -61,7 +66,14 @@ func Open(root string) (*bolt.DB, error) {
 }
 
 func PathsBucket(tx *bolt.Tx) *bolt.Bucket {
-	return tx.Bucket([]byte("paths"))
+	return tx.Bucket([]byte(bucketPaths))
+}
+
+// WholeTreeBucket returns the bucket holding whole-tree check signatures
+// (conformist#16). May be nil on a cache db created before this bucket existed;
+// callers must nil-check.
+func WholeTreeBucket(tx *bolt.Tx) *bolt.Bucket {
+	return tx.Bucket([]byte(bucketWholeTree))
 }
 
 func Remove(root string) error {

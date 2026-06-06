@@ -80,14 +80,19 @@ not run `just`/`just lint` again right before merging.
   by their **formatter sequence** (a `batchKey` like `deadnix:statix:nixfmt`);
   `scheduler.go` runs batches concurrently (errgroup limited to `NumCPU`).
   Per-file **signatures** (md5 of the formatter sequence + file mod-time/size)
-  drive change-detection caching so unchanged files are skipped. `check.go` /
-  `repair.go` are the two modes; `sandbox.go` implements the
+  drive change-detection caching so unchanged files are skipped. Whole-tree
+  checks (`passes-files=false` linters) are cached separately (conformist#16):
+  `check.go`'s `Finalize` runs them once over their full matched set and keys a
+  per-check cache entry on the config + an order-independent union of the matched
+  files' signatures, skipping the check when nothing it matches has changed.
+  `check.go` / `repair.go` are the two modes; `sandbox.go` implements the
   copy-and-diff strategy that lets fix-only formatters be _checked_ without
   writing to the source tree (so checks work on a read-only tree); `linter.go`,
   `composite.go`, `glob.go` round out matching and linter execution.
 - `walk/` — pluggable tree walkers: `filesystem.go`, `git.go`, `jujutsu.go`,
   `stdin.go`, selected by `type_enum.go`. `walk/cache/` is the bbolt-backed
-  (`go.etcd.io/bbolt`) format-signature cache.
+  (`go.etcd.io/bbolt`) cache: a `paths` bucket for per-file format signatures and
+  a `wholetree` bucket for whole-tree check signatures (conformist#16).
 - `stats/`, `git/`, `jujutsu/` — run statistics and VCS helpers.
 - `test/` — integration harness and fixtures (`test/config`, `test/examples`).
   Fixtures under `test/**` are **deliberately mis-formatted**; they are excluded

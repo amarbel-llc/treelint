@@ -107,6 +107,12 @@ func TestCompositeCheckerWholeTreeLinter(t *testing.T) {
 		walkFile(t, root, "b.go"),
 	})
 	as.NoError(err)
+
+	// whole-tree checks accumulate during Check and run in Finalize (no cache db
+	// is set here, so the check always runs).
+	wholeFindings, err := checker.Finalize(context.Background())
+	as.NoError(err)
+	findings = append(findings, wholeFindings...)
 	as.Empty(findings, "a clean whole-tree check should report no findings")
 
 	// the check must have run exactly once, with zero file arguments

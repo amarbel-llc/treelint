@@ -14,9 +14,11 @@ import (
 	"github.com/amarbel-llc/conformist/format"
 	"github.com/amarbel-llc/conformist/stats"
 	"github.com/amarbel-llc/conformist/walk"
+	"github.com/amarbel-llc/conformist/walk/cache"
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	bolt "go.etcd.io/bbolt"
 )
 
 // ErrCheckFindings indicates `conformist check` found at least one finding
@@ -84,7 +86,41 @@ func runCheck(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []st
 		return fmt.Errorf("%w: failed to create checker: %w", ErrCheckOperational, err)
 	}
 
-	// read-only: pass a nil cache db so nothing is written.
+	// Whole-tree check caching (conformist#16): clear the cache first if asked,
+	// then open it unless --no-cache. This db holds only check signatures, never
+	// tree contents — check mode still never writes the working tree. The walker
+	// stays cache-less (per-file checks are not cached); only the whole-tree checks
+	// consult this db, via the checker.
+	// Caching is best-effort: a read-only sandbox (e.g. the nix checks.formatting
+	// build, where HOME=/homeless-shelter) has no writable cache dir, so a cache
+	// failure degrades to an uncached run rather than failing the check.
+	if cfg.ClearCache {
+		if rmErr := cache.Remove(cfg.TreeRoot); rmErr != nil {
+			log.Debugf("cache clear skipped (cache unavailable): %v", rmErr)
+		}
+	}
+
+	var db *bolt.DB
+
+	if !cfg.NoCache {
+		opened, openErr := cache.Open(cfg.TreeRoot)
+		if openErr != nil {
+			log.Debugf("whole-tree check caching disabled (cache unavailable): %v", openErr)
+		} else {
+			db = opened
+
+			defer func() {
+				if closeErr := db.Close(); closeErr != nil {
+					log.Errorf("failed to close cache: %v", closeErr)
+				}
+			}()
+		}
+	}
+
+	checker.SetCache(db, cfg.NoCache)
+
+	// The walker is cache-less in check mode: only whole-tree checks are cached
+	// (by the checker, above); per-file checks always run.
 	walker, err := walk.NewCompositeReader(walkType, cfg.TreeRoot, paths, nil, statz)
 	if err != nil {
 		return fmt.Errorf("%w: failed to create walker: %w", ErrCheckOperational, err)
@@ -154,6 +190,15 @@ func runCheck(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []st
 	default:
 		return fmt.Errorf("%w: failed to read files: %w", ErrCheckOperational, readErr)
 	}
+
+	// Run whole-tree (passes-files=false) checks now that every batch has been
+	// read and their full matched sets accumulated (conformist#16).
+	wholeTreeFindings, finErr := checker.Finalize(ctx)
+	if finErr != nil {
+		return fmt.Errorf("%w: %w", ErrCheckOperational, finErr)
+	}
+
+	findings = append(findings, wholeTreeFindings...)
 
 	if !cfg.Quiet {
 		statz.PrintToStderr()
