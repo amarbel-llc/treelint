@@ -1,0 +1,14 @@
+# Custom golangci-lint build manifest (golangci-lint v2 module-plugin system).
+# Wires in the dewey static analyzers (defererr/seqerror/repool, + opt-in
+# actx/paramobj) so they ride the golangci-lint lane. conformist#10.
+#
+# NOTE: this file declares the plugin wiring; building the custom binary
+# (`golangci-lint custom`) and enabling `dewey` in .golangci.yaml are gated on a
+# reusable Nix builder for a custom golangci-lint (tracked separately, coordinated
+# with igloo). Until then this manifest is inert — present so conformist dogfoods
+# the golangci-dewey rule and so the wiring is ready for the build lane.
+version: v2.5.0
+plugins:
+  - module: github.com/amarbel-llc/purse-first/libs/dewey
+    import: github.com/amarbel-llc/purse-first/libs/dewey/gclplugin
+    version: latest

@@ -309,6 +309,31 @@
               if ${cmd}; then echo "FAIL: git:// remote not flagged" >&2; exit 1; fi
               touch $out
             '';
+
+          # True-positive regression for the golangci-dewey wiring rule
+          # (conformist#10): a golangci-gating repo with a .custom-gcl.yml that
+          # references the dewey plugin passes; one without .custom-gcl.yml is
+          # flagged; a repo that doesn't gate on golangci-lint is a no-op pass.
+          golangci-dewey =
+            let
+              cmd = conformistEval.config.settings.linter.golangci-dewey.command;
+            in
+            pkgs.runCommand "conformist-golangci-dewey-test" { } ''
+              set -eu
+              # gates on golangci-lint + wires the dewey plugin -> passes.
+              mkdir -p ok
+              printf 'version: "2"\n' > ok/.golangci.yaml
+              printf 'plugins:\n  - module: github.com/amarbel-llc/purse-first/libs/dewey\n' > ok/.custom-gcl.yml
+              ( cd ok && ${cmd} ) || { echo "FAIL: wired repo was flagged" >&2; exit 1; }
+              # gates on golangci-lint, no .custom-gcl.yml -> flagged.
+              mkdir -p missing
+              printf 'version: "2"\n' > missing/.golangci.yaml
+              if ( cd missing && ${cmd} ); then echo "FAIL: missing .custom-gcl.yml not flagged" >&2; exit 1; fi
+              # does not gate on golangci-lint -> no-op pass.
+              mkdir -p none
+              ( cd none && ${cmd} ) || { echo "FAIL: non-golangci repo was flagged" >&2; exit 1; }
+              touch $out
+            '';
         };
 
         devShells.default = pkgs-master.mkShell {

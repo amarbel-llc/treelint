@@ -22,6 +22,7 @@
   # checks.formatting gate (the git-state checks live in nix/conformist-impure.nix).
   linters.eng-versioning.enable = true; # eng-versioning(7): version.env key
   linters.eng-versioning-deprecated-file.enable = true; # ...(7): no version.txt / flake.nix named var (#14)
+  linters.golangci-dewey.enable = true; # conformist#10: .custom-gcl.yml wires the dewey plugin
   linters.flake-outputs.enable = true; # conformist#9: outputs formal accepts all inputs
   linters.justfile-default.enable = true; # eng-design_patterns-justfile(7): default first
   linters.justfile-recipe-names.enable = true; # ...(7): verb-noun recipe naming
