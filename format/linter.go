@@ -99,7 +99,7 @@ func (l *Linter) run(
 
 	start := time.Now()
 
-	cmd := exec.CommandContext(ctx, exe, args...) //nolint:gosec
+	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Cancel = func() error { return cmd.Process.Signal(os.Interrupt) }
 	cmd.Dir = l.workingDir
 

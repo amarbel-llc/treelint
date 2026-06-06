@@ -251,7 +251,7 @@ func applyLinterRepairs(
 		if repairErr := linter.Repair(ctx, files[:n]); repairErr != nil {
 			_ = walker.Close()
 
-			return repairErr
+			return fmt.Errorf("linter repair failed: %w", repairErr)
 		}
 
 		releaseCtx := walk.SetNoCache(ctx, true)
@@ -274,5 +274,9 @@ func applyLinterRepairs(
 		}
 	}
 
-	return walker.Close()
+	if err := walker.Close(); err != nil {
+		return fmt.Errorf("failed to close walker: %w", err)
+	}
+
+	return nil
 }

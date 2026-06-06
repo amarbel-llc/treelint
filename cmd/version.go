@@ -15,9 +15,11 @@ func newVersionCmd(name, version, commit string) *cobra.Command {
 		Short: "Print version information",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			_, err := fmt.Fprintf(cmd.OutOrStdout(), "%s %s+%s\n", name, version, commit)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s %s+%s\n", name, version, commit); err != nil {
+				return fmt.Errorf("failed to write version: %w", err)
+			}
 
-			return err
+			return nil
 		},
 	}
 }

@@ -39,8 +39,9 @@ not run `just`/`just lint` again right before merging.
   fails if the working tree is mutated during the run.
 - `just lint` — `lint-fmt` (sandboxed `checks.formatting`, file-based linters) +
   `lint-worktree` (impure git-state linters against the working tree, where
-  `.git` is available) + `lint-go` (the dewey golangci-lint analyzers via the
-  purse-first custom build; `.golangci.yaml` is dewey-only, conformist#10).
+  `.git` is available) + `lint-go` (golangci-lint via the purse-first custom
+  build carrying the dewey analyzers; `.golangci.yaml` is `default: all` minus a
+  curated disable list, plus the `dewey` custom linter — conformist#10/#22).
 - `just codemod-fmt` — `nix fmt` (write/repair mode on conformist's own tree).
 - `just build-gomod2nix` — regenerate `gomod2nix.toml`; run after changing deps.
 - `just update-go` — `go mod tidy` then regenerate gomod2nix.

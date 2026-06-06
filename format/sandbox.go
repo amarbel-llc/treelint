@@ -200,7 +200,9 @@ func copyIntoSandbox(treeRoot, dir string, file *walk.File) error {
 		return fmt.Errorf("failed to create sandbox subdir: %w", err)
 	}
 
-	if err := os.WriteFile(dst, content, mode); err != nil {
+	// dst is conformist's own sandbox path (sandbox dir + the matched file's
+	// RelPath), not an externally-tainted path, so the traversal warning is moot.
+	if err := os.WriteFile(dst, content, mode); err != nil { //nolint:gosec
 		return fmt.Errorf("failed to write sandbox copy: %w", err)
 	}
 

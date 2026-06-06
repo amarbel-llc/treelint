@@ -92,11 +92,12 @@ func (c *CompositeChecker) Check(ctx context.Context, files []*walk.File) ([]Fin
 			}
 		}
 
-		if matched {
+		switch {
+		case matched:
 			c.stats.Add(stats.Matched, 1)
-		} else if c.unmatchedLevel == log.FatalLevel {
+		case c.unmatchedLevel == log.FatalLevel:
 			return nil, fmt.Errorf("no formatter or linter for path: %s", file.RelPath)
-		} else {
+		default:
 			log.Logf(c.unmatchedLevel, "no formatter or linter for path: %s", file.RelPath)
 		}
 	}

@@ -195,7 +195,8 @@ func SetFlags(fs *pflag.FlagSet) {
 //   - automatic env enabled
 //   - `CONFORMIST_` env prefix for environment variables, falling back to the
 //     legacy `TREELINT_` prefix when the `CONFORMIST_` equivalent is unset
-//   - replacement of `-` and `.` with `_` when mapping flags to env e.g. `global.excludes` => `CONFORMIST_GLOBAL_EXCLUDES`.
+//   - replacement of `-` and `.` with `_` when mapping flags to env, e.g.
+//     `global.excludes` => `CONFORMIST_GLOBAL_EXCLUDES`.
 func NewViper() (*viper.Viper, error) {
 	v := viper.New()
 
@@ -632,7 +633,7 @@ func configCeilingDirs() map[string]struct{} {
 	set := make(map[string]struct{})
 	resolve := true
 
-	for _, entry := range strings.Split(raw, string(os.PathListSeparator)) {
+	for entry := range strings.SplitSeq(raw, string(os.PathListSeparator)) {
 		if entry == "" {
 			// An empty entry disables symlink resolution for subsequent entries.
 			resolve = false
@@ -666,7 +667,7 @@ func configCeilingDirs() map[string]struct{} {
 func eachDir(path string) (paths []string) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return
+		return nil
 	}
 
 	ceilings := configCeilingDirs()
@@ -698,7 +699,7 @@ func eachDir(path string) (paths []string) {
 		path = parent
 	}
 
-	return
+	return paths
 }
 
 func fileExists(path string) bool {
