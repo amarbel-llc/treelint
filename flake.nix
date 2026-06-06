@@ -251,6 +251,36 @@
               }
               touch $out
             '';
+
+          # True-positive regression for the eng-versioning deprecated-file rule
+          # (conformist#14): run the linter's own command against fixtures and
+          # assert it passes a clean tree but FLAGS a `version.txt` and a flake.nix
+          # named version let-binding. checks.formatting only proves conformist's
+          # own clean tree passes; this proves the rule actually fires.
+          eng-versioning-deprecated-file =
+            let
+              cmd = conformistEval.config.settings.linter.eng-versioning-deprecated-file.command;
+            in
+            pkgs.runCommand "conformist-eng-versioning-deprecated-file-test" { } ''
+              set -eu
+              # Clean tree (flake.nix without a named version var, no version.txt) passes.
+              mkdir -p clean
+              printf '{ outputs = _: { }; }\n' > clean/flake.nix
+              ( cd clean && ${cmd} ) || { echo "FAIL: clean tree was flagged" >&2; exit 1; }
+              # version.txt at the repo root is flagged.
+              mkdir -p vt
+              printf '{ }\n' > vt/flake.nix
+              printf '0.1.0\n' > vt/version.txt
+              if ( cd vt && ${cmd} ); then echo "FAIL: version.txt not flagged" >&2; exit 1; fi
+              # A named version let-binding in flake.nix is flagged. The semver is
+              # passed as a printf arg so the matchable literal never appears in
+              # *this* flake.nix source — otherwise the rule would (correctly) flag
+              # conformist's own flake.nix.
+              mkdir -p nv
+              printf '{\n  fooVersion = "%s";\n}\n' 1.2.3 > nv/flake.nix
+              if ( cd nv && ${cmd} ); then echo "FAIL: flake.nix named version var not flagged" >&2; exit 1; fi
+              touch $out
+            '';
         };
 
         devShells.default = pkgs-master.mkShell {

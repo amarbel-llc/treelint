@@ -111,6 +111,8 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
 - `nix/linters/` + `linters.nix` — the linter registry. Beyond general linters
   (shellcheck, ruff, statix, deadnix, typos, yamllint, …), this holds the
   **eng-convention enforcers** conformist runs on itself: `eng-versioning`,
+  `eng-versioning-deprecated-file` (flags `version.txt` / a flake.nix named
+  version var, per eng-versioning(7) "Deprecated alternatives"),
   `justfile-default`, `justfile-recipe-names`, `flake-outputs`, `git-remotes`,
   `git-default-branch`, `sweatfile`, `agents-md` (CLAUDE.md→AGENTS.md migration,
   check + repair).
