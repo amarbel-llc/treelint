@@ -13,7 +13,7 @@ validate-devshell:
 
 # --- lint ---
 
-lint: lint-fmt lint-worktree
+lint: lint-fmt lint-worktree lint-go
 
 # Read-only gate via the self-consumed conformist `checks.formatting` derivation
 # (a `conformist check` run; the read-only counterpart to the writing `nix fmt`).
@@ -31,6 +31,17 @@ lint-worktree:
     set -euo pipefail
     cfg=$(nix build --no-link --print-out-paths '.#conformist-impure-config')
     nix run '.#conformist' -- check --config-file "$cfg" --tree-root .
+
+# Run dewey's golangci-lint analyzers over the Go tree via the purse-first custom
+# golangci-lint build (conformist#10). dewey-only: .golangci.yaml sets
+# default:none + enable [dewey], so this gates only dewey's analyzers, not the
+# (deferred) stock golangci-lint linters. golangci-lint loads packages with the
+# devShell go, so the binary runs inside `nix develop`.
+lint-go:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    bin=$(nix build --no-link --print-out-paths '.#golangci-lint-dewey')/bin/golangci-lint-dewey
+    nix develop --command "$bin" run ./...
 
 # --- build ---
 

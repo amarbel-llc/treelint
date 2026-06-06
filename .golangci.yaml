@@ -1,31 +1,30 @@
 version: "2"
 linters:
-    default: all
-    disable:
-        - cyclop
-        - depguard
-        - err113
-        - exhaustruct
-        - forbidigo
-        - funcorder
-        - funlen
-        - gocognit
-        - gocyclo
-        - godox
-        - maintidx
-        - mnd
-        - noinlineerr
-        - nonamedreturns
-        - paralleltest
-        - varnamelen
-        - wsl
+    # dewey-only (conformist#10): conformist gates its Go on the dewey analyzers
+    # via the purse-first custom golangci-lint build (`just lint-go`). The stock
+    # golangci-lint linters (the former `default: all`) are a separate, larger
+    # adoption — conformist has never run them in CI — and are deferred to their
+    # own effort, so `default: none` keeps this lane scoped to dewey.
+    default: none
+    enable:
+        - dewey
+    settings:
+        custom:
+            # dewey static analyzers (purse-first/libs/dewey), surfaced by the
+            # gclplugin module plugin: defererr/seqerror/repool are on by default;
+            # actx/paramobj are opt-in. golangci-lint pinned at v2.12.2 by the
+            # purse-first builder (binary: 2.12.2-dewey.0.2.9).
+            dewey:
+                type: module
+                description: dewey static analyzers (defererr, seqerror, repool; opt-in actx, paramobj)
+                settings:
+                    defererr: true
+                    seqerror: true
+                    repool: true
+                    actx: false
+                    paramobj: false
     exclusions:
         generated: lax
-        presets:
-            - comments
-            - common-false-positives
-            - legacy
-            - std-error-handling
         paths:
             - third_party$
             - builtin$

@@ -16,6 +16,13 @@
     nixpkgs-master.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
 
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
+
+    # Source of the custom golangci-lint built with dewey's gclplugin
+    # (purse-first#134): `packages.<system>.golangci-lint-dewey`, a complete
+    # golangci-lint v2.12.2 with the `dewey` module-plugin analyzers registered.
+    # conformist consumes it for the dewey lint lane (conformist#10). Its own
+    # closure is pinned by purse-first; we do not make it follow our nixpkgs.
+    purse-first.url = "github:amarbel-llc/purse-first";
   };
 
   outputs =
@@ -24,6 +31,7 @@
       igloo,
       nixpkgs-master,
       utils,
+      purse-first,
     }:
     let
       # conformist's own Nix module library (issue #4). Exposed as `self.lib` so
@@ -217,6 +225,10 @@
           # The generated config for the impure (git-state) self-checks, consumed
           # by `just check-worktree`.
           conformist-impure-config = conformistImpureEval.config.build.configFile;
+          # The custom golangci-lint carrying dewey's analyzers, re-exported from
+          # purse-first (#134) so `just lint-go` builds it via `.#golangci-lint-dewey`
+          # (binary: bin/golangci-lint-dewey). conformist#10.
+          golangci-lint-dewey = purse-first.packages.${system}.golangci-lint-dewey;
         };
 
         # `nix fmt` writes (repair mode); `checks.formatting` is the sandboxed

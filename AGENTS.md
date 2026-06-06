@@ -39,7 +39,8 @@ not run `just`/`just lint` again right before merging.
   fails if the working tree is mutated during the run.
 - `just lint` — `lint-fmt` (sandboxed `checks.formatting`, file-based linters) +
   `lint-worktree` (impure git-state linters against the working tree, where
-  `.git` is available).
+  `.git` is available) + `lint-go` (the dewey golangci-lint analyzers via the
+  purse-first custom build; `.golangci.yaml` is dewey-only, conformist#10).
 - `just codemod-fmt` — `nix fmt` (write/repair mode on conformist's own tree).
 - `just build-gomod2nix` — regenerate `gomod2nix.toml`; run after changing deps.
 - `just update-go` — `go mod tidy` then regenerate gomod2nix.
@@ -137,7 +138,10 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
   the build-backend bench uses to force cold rebuilds), igloo#29/#28),
   `nixpkgs-master`
   (pinned, source of the devShell Go dev tools `gofumpt`/`golangci-lint`/`gopls`;
-  no longer the `go` source), `utils`.
+  no longer the `go` source), `utils`, and `purse-first` (source of
+  `packages.<sys>.golangci-lint-dewey`, the custom golangci-lint carrying dewey's
+  analyzers, re-exported as `.#golangci-lint-dewey` for the `lint-go` lane —
+  purse-first#134 / conformist#10).
 - `packages.{default,conformist}` — a `symlinkJoin` of the **godyn (native)**
   binary (`buildGoAuto { strategy = "dev"; }`, `doCheck = false`; integration
   tests need formatter binaries on PATH and run via `just test-go`) and its

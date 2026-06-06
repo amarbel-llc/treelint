@@ -708,7 +708,9 @@ func fileExists(path string) bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	// fileExists only stats a read-only fd and returns a bool, so there is no
+	// error channel to carry a Close failure and the error is benign.
+	defer f.Close() //defer:err-checked
 
 	// Next, check that the file is a regular file.
 	fi, err := f.Stat()

@@ -34,7 +34,13 @@ func (s StdinReader) Read(_ context.Context, files []*File) (n int, err error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to create a temporary file for processing stdin: %w", err)
 	}
-	defer file.Close()
+	// The temp file is written to (io.Copy below), so a failed Close can mean
+	// stdin data was not flushed — capture it into the named err return. (dewey defererr)
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close temporary stdin file: %w", closeErr)
+		}
+	}()
 
 	if _, err = io.Copy(file, s.input); err != nil {
 		return 0, errors.New("failed to copy stdin into a temporary file")
