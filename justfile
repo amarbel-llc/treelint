@@ -32,14 +32,19 @@ lint-worktree:
     cfg=$(nix build --no-link --print-out-paths '.#conformist-impure-config')
     nix run '.#conformist' -- check --config-file "$cfg" --tree-root .
 
-# Run dewey's golangci-lint analyzers over the Go tree via the purse-first custom
-# golangci-lint build (conformist#10). dewey-only: .golangci.yaml sets
-# default:none + enable [dewey], so this gates only dewey's analyzers, not the
-# (deferred) stock golangci-lint linters. golangci-lint loads packages with the
-# devShell go, so the binary runs inside `nix develop`.
+# Run golangci-lint (stock set per .golangci.yaml: default:all minus the curated
+# disable list, plus dewey's analyzers — conformist#10/#22) via the purse-first
+# custom build. golangci-lint loads packages with the devShell go, so the binary
+# runs inside `nix develop`. The cache defaults to a per-worktree dir: the
+# user-global default cache replays per-package diagnostics whose embedded
+# absolute paths point at whichever worktree populated them — once that worktree
+# is deleted, nolint/generated-file suppression fails open and spurious findings
+# leak (see the conformist sweatfile's [direnv.dotenv], which pins the same path
+# for whole sessions; this fallback covers non-spinclass runs).
 lint-go:
     #!/usr/bin/env bash
     set -euo pipefail
+    export GOLANGCI_LINT_CACHE="${GOLANGCI_LINT_CACHE:-$PWD/.tmp/golangci-lint}"
     bin=$(nix build --no-link --print-out-paths '.#golangci-lint-dewey')/bin/golangci-lint-dewey
     nix develop --command "$bin" run ./...
 
