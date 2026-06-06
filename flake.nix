@@ -38,6 +38,8 @@
         pkgs = import igloo { inherit system; };
         pkgs-master = import nixpkgs-master { inherit system; };
 
+        # bga (buildGoApplication) build — the opt-in, ca-derivations-free backend
+        # behind `.#conformist-bga`. No longer the default (the godyn build is).
         conformistBin = pkgs.buildGoApplication {
           pname = "conformist";
           # `src = self` lets the fork's buildGoApplication resolve
@@ -63,12 +65,16 @@
         # doc/, and `conformist gen-man` renders the section-1 CLI reference from
         # the cobra command tree (PRINCIPLE 3). This derivation IS the man-page
         # lint — a malformed .scd fails the build. Rendered roff is never committed.
-        manpages =
+        # Man pages factory, parameterised by the conformist binary used to run
+        # `gen-man` — so each backend's package bundles man pages built with its
+        # own binary, without dragging in the other backend.
+        mkManpages =
+          bin:
           pkgs.runCommand "conformist-manpages"
             {
               nativeBuildInputs = [
                 pkgs.scdoc
-                conformistBin
+                bin
               ];
             }
             ''
@@ -99,18 +105,38 @@
               conformist gen-man "$out/share/man/man1"
             '';
 
-        # The shipped package: the binary plus its man pages, merged so that
-        # `nix build` produces man pages alongside the binary (eng-manpages(7)).
-        # `meta.mainProgram` keeps `nix run`/`lib.getExe` resolving to bin/conformist.
+        # Man pages per backend: the default (godyn) package needs no bga build,
+        # and the bga fallback needs no ca-derivations.
+        manpages = mkManpages conformist-dev;
+        manpagesBga = mkManpages conformistBin;
+
+        # The shipped package (DEFAULT): the godyn (native) binary plus its man
+        # pages. After the full switch to the godyn backend, `nix build`,
+        # `nix run .`, and `.#conformist` all resolve here; the bga build is the
+        # opt-in `.#conformist-bga` below. `meta.mainProgram` keeps `nix run` /
+        # `lib.getExe` resolving to bin/conformist.
         conformist = pkgs.symlinkJoin {
           name = "conformist";
           paths = [
-            conformistBin
+            conformist-dev
             manpages
           ];
-          # Preserve the binary's meta (description, license, …) on the shipped
-          # package; symlinkJoin would otherwise drop it. mainProgram keeps
-          # `nix run`/`lib.getExe` resolving to bin/conformist.
+          meta = (conformist-dev.meta or { }) // {
+            mainProgram = "conformist";
+          };
+        };
+
+        # Opt-in bga package: the single input-addressed buildGoApplication
+        # derivation + bga-built man pages. ca-derivations-free, so consumers
+        # without that experimental feature (or who want the cold/release-faster
+        # single-derivation build) can `nix build .#conformist-bga`. See the
+        # backend bench (`just debug-bench-backends`) for the tradeoffs.
+        conformist-bga = pkgs.symlinkJoin {
+          name = "conformist-bga";
+          paths = [
+            conformistBin
+            manpagesBga
+          ];
           meta = (conformistBin.meta or { }) // {
             mainProgram = "conformist";
           };
@@ -119,9 +145,11 @@
         # Native (godyn) build of the bare binary, driven by the committed
         # godyn-graph.json (igloo#29). buildGoAuto with strategy = "dev" selects
         # igloo's per-package godyn backend (`go tool compile`/`link` directly,
-        # no `go build`) for a faster edit loop; strategy = "ci" would route back
-        # to buildGoApplication. The default package stays the bga + manpages
-        # join above — this dev target is just bin/conformist, no man pages.
+        # no `go build`). This is now the DEFAULT backend: the `conformist` join
+        # above bundles it with man pages, and `.#conformist-dev` exposes the bare
+        # binary (no man pages) for the fast inner loop and the backend bench. Its
+        # per-package outputs are content-addressed, so building it requires the
+        # ca-derivations feature; the input-addressed bga build is `.#conformist-bga`.
         #
         # subPackages / GOTOOLCHAIN are buildGoApplication-only knobs and so live
         # under bgaArgs (the godyn backend ignores them: its scope is the graph,
@@ -144,12 +172,13 @@
         };
 
         # conformist self-consuming its own module. Replaces the former
-        # treefmt-nix `treefmtEval`. The bare binary (conformistBin) is used here:
-        # the formatter wrapper and check gate only need the executable, not the
-        # man pages. `package` is required because conformist is not in nixpkgs.
+        # treefmt-nix `treefmtEval`. The bare godyn binary (conformist-dev) is used
+        # here — the formatter wrapper and check gate only need the executable, and
+        # reusing the default backend avoids a separate bga build during lint.
+        # `package` is required because conformist is not in nixpkgs.
         conformistEval = conformistLib.evalModule pkgs {
           imports = [ ./nix/conformist.nix ];
-          package = conformistBin;
+          package = conformist-dev;
         };
 
         # IMPURE self-check config: git-state whole-tree checks (e.g. git-remotes)
@@ -158,7 +187,7 @@
         # `conformist check` against the working tree. See nix/conformist-impure.nix.
         conformistImpureEval = conformistLib.evalModule pkgs {
           imports = [ ./nix/conformist-impure.nix ];
-          package = conformistBin;
+          package = conformist-dev;
         };
 
         # Eval-only smoke test over the full program + linter registries:
@@ -172,10 +201,15 @@
       in
       {
         packages = {
+          # Default is now the godyn (native) build + man pages.
           default = conformist;
           conformist = conformist;
-          # Native (godyn) build of the bare binary for the fast edit loop
-          # (`nix build .#conformist-dev`); no man pages. See conformist-dev above.
+          # Opt-in bga (buildGoApplication) build + man pages: ca-derivations-free,
+          # a single input-addressed derivation. The former default backend.
+          conformist-bga = conformist-bga;
+          # The bare godyn binary for the fast edit loop and the backend bench
+          # (`nix build .#conformist-dev`, `.#conformist-dev.passthru.bga`); no man
+          # pages. See conformist-dev above.
           conformist-dev = conformist-dev;
           # The compiled man pages on their own, for inspection
           # (`nix build .#manpages`); also bundled into the conformist package.
