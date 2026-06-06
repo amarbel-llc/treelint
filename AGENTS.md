@@ -143,17 +143,24 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
   `packages.<sys>.golangci-lint-dewey`, the custom golangci-lint carrying dewey's
   analyzers, re-exported as `.#golangci-lint-dewey` for the `lint-go` lane —
   purse-first#134 / conformist#10).
-- `packages.{default,conformist}` — a `symlinkJoin` of the **godyn (native)**
+- `packages.{default,conformist}` — **per-system** (`godynSystem` in
+  `flake.nix`): on `x86_64-linux`, a `symlinkJoin` of the **godyn (native)**
   binary (`buildGoAuto { strategy = "dev"; }`, `doCheck = false`; integration
   tests need formatter binaries on PATH and run via `just test-go`) and its
-  `manpages`. godyn is the default backend, so building the default requires the
-  `ca-derivations` experimental feature — its per-package outputs are
-  content-addressed. `packages.conformist-bga` is the opt-in, ca-derivations-free
-  `buildGoApplication` build + man pages (the former default; a single
+  `manpages`; on every other system, the bga join (below). godyn is gated to
+  x86_64-linux because that's where it's exercised (godyn(7) LIMITATIONS) and
+  because the committed `godyn-graph.json` embeds GOOS/GOARCH-specific file
+  lists from `go list` at gen time (e.g. `x/sys/unix`'s `*_linux_amd64`
+  sources) — it cannot compile elsewhere until igloo#33 (per-system graphs)
+  lands. Building the godyn default requires the `ca-derivations` experimental
+  feature — its per-package outputs are content-addressed.
+  `packages.conformist-bga` is the ca-derivations-free `buildGoApplication`
+  build + man pages (the default off x86_64-linux, opt-in on it; a single
   input-addressed derivation, cold/release-faster — see the backend bench).
-  `packages.manpages` is the (godyn-built) man pages alone; `conformist-impure-config`
-  is the generated config for `lint-worktree`. Self-consumption evals
-  (`nix fmt` / `checks.formatting`) use the bare godyn binary, not the join.
+  `packages.manpages` is the default backend's man pages alone;
+  `conformist-impure-config` is the generated config for `lint-worktree`.
+  Self-consumption evals (`nix fmt` / `checks.formatting`) use the bare
+  default-backend binary (`selfBin`), not the join.
 - `packages.conformist-native` — the **bare** godyn binary (the default's backend
   without man pages), for the fast edit loop and the backend bench
   (`.#conformist-native.passthru.bga` is the bga build buildGoAuto keeps reachable).
