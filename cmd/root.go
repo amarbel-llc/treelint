@@ -107,10 +107,24 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 			"commit message. May be repeated.",
 	)
 
-	// --fail-on-change wants changes to fail the run; --commit wants them
-	// committed. (--stdin is rejected by RunCommit's preflight instead, which
-	// exits 2 with a clear message rather than cobra's usage error.)
+	// Staged scope (#25), lint-staged semantics: the caller's own commit
+	// proceeds with conformant content; conformist never commits here.
+	fs.Bool(
+		"staged", false,
+		"Format only the files currently staged in the index and restage the formatted content; "+
+			"no commit is created. Refuses partially staged files (staged files that also have "+
+			"unstaged changes). Exits 0 if the staged content was already conformant, 3 if files "+
+			"were reformatted and restaged, 2 if refused.",
+	)
+
+	// --fail-on-change wants changes to fail the run; --commit/--staged want
+	// them committed/restaged. --commit and --staged are distinct modes
+	// (full-tree fix commit vs lint-staged restage; see #25). (--stdin is
+	// rejected by the modes' preflights instead, which exit 2 with a clear
+	// message rather than cobra's usage error.)
 	cmd.MarkFlagsMutuallyExclusive("fail-on-change", "commit")
+	cmd.MarkFlagsMutuallyExclusive("fail-on-change", "staged")
+	cmd.MarkFlagsMutuallyExclusive("commit", "staged")
 
 	// bind our config flags to viper
 	if err := v.BindPFlags(pfs); err != nil {
@@ -177,10 +191,15 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 		return err
 	}
 
-	// auto-commit mode (#24)
+	// auto-commit (#24) and staged (#25) modes
 	commit, err := flags.GetBool("commit")
 	if err != nil {
 		return fmt.Errorf("failed to read commit flag: %w", err)
+	}
+
+	staged, err := flags.GetBool("staged")
+	if err != nil {
+		return fmt.Errorf("failed to read staged flag: %w", err)
 	}
 
 	trailers, err := flags.GetStringArray("trailer")
@@ -188,22 +207,33 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 		return fmt.Errorf("failed to read trailer flag: %w", err)
 	}
 
-	if commit {
-		allowDirty, err := flags.GetBool("allow-dirty")
-		if err != nil {
-			return fmt.Errorf("failed to read allow-dirty flag: %w", err)
-		}
+	allowDirty, err := flags.GetBool("allow-dirty")
+	if err != nil {
+		return fmt.Errorf("failed to read allow-dirty flag: %w", err)
+	}
 
+	// --staged creates no commit (the caller's commit carries its own
+	// message), and tolerates a dirty tree by design — these knobs only make
+	// sense with --commit.
+	if len(trailers) > 0 && !commit {
+		return errors.New("--trailer requires --commit")
+	}
+
+	if allowDirty && !commit {
+		return errors.New("--allow-dirty requires --commit")
+	}
+
+	if staged {
+		return format.RunStaged(v, statz, cmd, args) //nolint:wrapcheck
+	}
+
+	if commit {
 		opts := format.CommitOptions{
 			AllowDirty: allowDirty,
 			Trailers:   trailers,
 		}
 
 		return format.RunCommit(v, statz, cmd, args, opts) //nolint:wrapcheck
-	}
-
-	if len(trailers) > 0 {
-		return errors.New("--trailer requires --commit")
 	}
 
 	// format

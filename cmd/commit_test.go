@@ -221,6 +221,145 @@ func TestCommitTrailer(t *testing.T) {
 	as.Contains(trailers, "X-Pilot: ssh-agent-mux")
 }
 
+// TestStaged covers the lint-staged-style --staged mode (#25): format only
+// the files staged in the index, restage the formatted content, create no
+// commit. Exit codes: 0 = staged content already conformant, 3 = reformatted
+// and restaged, 2 = refused (partially staged files, no git worktree).
+func TestStaged(t *testing.T) {
+	as := require.New(t)
+
+	tempDir := test.TempExamples(t)
+	configPath := filepath.Join(tempDir, "conformist.toml")
+
+	test.ChangeWorkDir(t, tempDir)
+
+	t.Setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+	t.Setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+	t.Setenv("GIT_AUTHOR_NAME", "conformist-test")
+	t.Setenv("GIT_AUTHOR_EMAIL", "conformist-test@example.invalid")
+	t.Setenv("GIT_COMMITTER_NAME", "conformist-test")
+	t.Setenv("GIT_COMMITTER_EMAIL", "conformist-test@example.invalid")
+
+	git := func(args ...string) string {
+		t.Helper()
+
+		out, err := exec.CommandContext(t.Context(), "git", args...).CombinedOutput()
+		as.NoError(err, "git %v: %s", args, out)
+
+		return strings.TrimSpace(string(out))
+	}
+
+	cfg := &config.Config{
+		FormatterConfigs: map[string]*config.Formatter{
+			"append": {
+				Command:  "test-fmt-append",
+				Options:  []string{"hello"},
+				Includes: []string{"ruby/*"},
+			},
+		},
+	}
+
+	test.WriteConfig(t, configPath, cfg)
+
+	// outside a git worktree → refused (exit 2)
+	conformist(t,
+		withArgs("--staged"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorIs(err, formatCmd.ErrStagedRefused)
+			as.Equal(2, cmd.ExitCode(err))
+		}),
+	)
+
+	git("init")
+	git("add", ".")
+	git("commit", "-m", "init")
+
+	head := git("rev-parse", "HEAD")
+
+	// nothing staged → nothing to do (exit 0)
+	conformist(t,
+		withArgs("--staged"),
+		withNoError(t),
+	)
+
+	// stage a change to a matched file; leave an unrelated file dirty and
+	// unstaged — staged mode must tolerate it (that is its whole point)
+	rubyPath := filepath.Join("ruby", "bundler.rb")
+	as.NoError(os.WriteFile(rubyPath, []byte("puts 'staged change'\n"), 0o644))
+	git("add", rubyPath)
+
+	mainGo := filepath.Join("go", "main.go")
+	as.NoError(os.WriteFile(mainGo, []byte("package main\n"), 0o644))
+
+	conformist(t,
+		withArgs("--staged"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorIs(err, formatCmd.ErrFixesRestaged)
+			as.Equal(3, cmd.ExitCode(err))
+		}),
+	)
+
+	// the formatted content was restaged: the index blob carries the fix and
+	// the staged file has no unstaged delta left
+	as.Contains(git("show", ":ruby/bundler.rb"), "hello")
+	as.Empty(git("diff", "--name-only", "--", "ruby/bundler.rb"))
+	// still staged and NOT committed — the commit is the caller's
+	as.Equal("ruby/bundler.rb", git("diff", "--cached", "--name-only"))
+	as.Equal(head, git("rev-parse", "HEAD"))
+	// the unrelated dirty file is untouched and still unstaged
+	as.Equal("go/main.go", git("diff", "--name-only"))
+
+	// second run: staged content is now conformant → exit 0, index unchanged
+	stagedBlob := git("show", ":ruby/bundler.rb")
+
+	conformist(t,
+		withArgs("--staged"),
+		withNoError(t),
+	)
+	as.Equal(stagedBlob, git("show", ":ruby/bundler.rb"))
+
+	// a staged file with ADDITIONAL unstaged edits is refused before any
+	// formatting (the restage would sweep the unstaged hunk into the index)
+	preRefusal, err := os.ReadFile(rubyPath)
+	as.NoError(err)
+	as.NoError(os.WriteFile(rubyPath, append(preRefusal, []byte("puts 'unstaged extra'\n")...), 0o644))
+
+	conformist(t,
+		withArgs("--staged", "--no-cache"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorIs(err, formatCmd.ErrStagedRefused)
+			as.ErrorContains(err, "partially staged")
+			as.ErrorContains(err, "ruby/bundler.rb")
+			as.Equal(2, cmd.ExitCode(err))
+		}),
+	)
+
+	// refusal happened before formatting: the worktree gained no new append
+	postRefusal, err := os.ReadFile(rubyPath)
+	as.NoError(err)
+	as.Equal(string(preRefusal)+"puts 'unstaged extra'\n", string(postRefusal))
+
+	// flag interactions
+	conformist(t,
+		withArgs("--staged", "--commit"),
+		withError(func(as *require.Assertions, err error) {
+			as.Error(err)
+		}),
+	)
+	conformist(t,
+		withArgs("--staged", "--trailer", "X-Fixed-By: conformist-test"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorContains(err, "--trailer requires --commit")
+		}),
+	)
+	conformist(t,
+		withArgs("--staged", "ruby"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorContains(err, "positional paths")
+		}),
+	)
+}
+
 // TestCommitStdin asserts --commit refuses stdin mode: there is no working
 // tree state to commit when formatting a stream.
 func TestCommitStdin(t *testing.T) {

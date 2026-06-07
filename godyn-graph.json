@@ -166,7 +166,8 @@
     "local": true,
     "goFiles": [
       "commit.go",
-      "format.go"
+      "format.go",
+      "staged.go"
     ],
     "cgoFiles": null,
     "cFiles": null,

@@ -50,6 +50,16 @@ conformist has two modes of operation.
 	check mode below: absorb mechanical fixes, then hard-fail on substantive
 	findings.
 
+*Staged* (lint-staged)
+	With *--staged*, conformist formats only the files currently staged in the
+	index and restages the formatted content; no commit is created, so the
+	caller's own commit — message, signing, trailers — proceeds with
+	conformant content. Partially staged files (staged with additional
+	unstaged edits) are refused before any formatting, since restaging would
+	sweep the unstaged hunks into the index. Exits 0 when the staged content
+	was already conformant, 3 when files were reformatted and restaged, and 2
+	when refused.
+
 *Check* (read-only)
 	Runs every formatter and linter without writing to the tree, reporting what
 	would change. This is the *conformist check* subcommand. It exits 0 when

@@ -60,8 +60,12 @@ not run `just`/`just lint` again right before merging.
 `conformist check` exits 0 when clean, 1 on findings, 2 on operational error.
 `conformist --commit` (repair + auto-commit, #24) exits 0 when the tree was
 already conformant, 3 when it applied fixes and committed them
-(`chore: conformist fmt+fix`), 2 when refused (dirty tree without
-`--allow-dirty`, or no git worktree).
+(`chore: conformist fmt+fix`, plus any `--trailer` lines — #26), 2 when
+refused (dirty tree without `--allow-dirty`, or no git worktree).
+`conformist --staged` (lint-staged restage, #25) exits 0/3/2 analogously:
+formats only index-staged files and restages the formatted content, creates
+no commit, refuses partially staged files (grep-stable "partially staged"
+message token).
 
 ## Architecture
 
