@@ -83,6 +83,28 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 		"[bash|zsh|fish] Generate shell completion scripts for the specified shell.",
 	)
 
+	// Auto-commit mode (#24): absorb mechanical fixes as a commit instead of
+	// leaving the apply-format-commit round-trip to the caller (hooks chain it
+	// with `conformist check` for substantive findings).
+	fs.Bool(
+		"commit", false,
+		"After formatting, commit exactly the files this run changed with the message "+
+			"\""+format.CommitMessage+"\". Refuses to run on an unclean working tree (see --allow-dirty). "+
+			"Exits 0 if the tree was already conformant, 3 if fixes were committed, 2 if refused.",
+	)
+
+	fs.Bool(
+		"allow-dirty", false,
+		"With --commit, run even if the working tree has uncommitted changes. Files that were "+
+			"already dirty before the run are never included in the commit, even if a formatter "+
+			"changes them further.",
+	)
+
+	// --fail-on-change wants changes to fail the run; --commit wants them
+	// committed. (--stdin is rejected by RunCommit's preflight instead, which
+	// exits 2 with a clear message rather than cobra's usage error.)
+	cmd.MarkFlagsMutuallyExclusive("fail-on-change", "commit")
+
 	// bind our config flags to viper
 	if err := v.BindPFlags(pfs); err != nil {
 		cobra.CheckErr(fmt.Errorf("failed to bind config flags to viper: %w", err))
@@ -146,6 +168,18 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 
 	if err := loadConfig(v, cmd, workingDir); err != nil {
 		return err
+	}
+
+	// auto-commit mode (#24)
+	if commit, err := flags.GetBool("commit"); err != nil {
+		return fmt.Errorf("failed to read commit flag: %w", err)
+	} else if commit {
+		allowDirty, err := flags.GetBool("allow-dirty")
+		if err != nil {
+			return fmt.Errorf("failed to read allow-dirty flag: %w", err)
+		}
+
+		return format.RunCommit(v, statz, cmd, args, allowDirty) //nolint:wrapcheck
 	}
 
 	// format

@@ -58,6 +58,10 @@ not run `just`/`just lint` again right before merging.
   from `master`).
 
 `conformist check` exits 0 when clean, 1 on findings, 2 on operational error.
+`conformist --commit` (repair + auto-commit, #24) exits 0 when the tree was
+already conformant, 3 when it applied fixes and committed them
+(`chore: conformist fmt+fix`), 2 when refused (dirty tree without
+`--allow-dirty`, or no git worktree).
 
 ## Architecture
 
@@ -69,7 +73,10 @@ not run `just`/`just lint` again right before merging.
   `-X main.commit` from `self.rev`; a plain `go build` leaves them `dev`/`unknown`.
   See `eng-versioning(7)`.
 - `cmd/` — cobra commands. `root.go` is the entry point: the bare command
-  (`conformist <paths...>`, `ArbitraryArgs`) runs format/repair via `format.Run`;
+  (`conformist <paths...>`, `ArbitraryArgs`) runs format/repair via `format.Run`,
+  or `format.RunCommit` with `--commit` (#24: repair, then commit exactly the
+  files the run changed — the pre/post `git status` delta — as
+  `chore: conformist fmt+fix`; dirty-tree policy in `commitPreflight`);
   subcommands `check` (`check.go`) and `version` (`version.go`) dispatch
   separately; a hidden `gen-man` (`genman.go`) renders the section-1 man pages
   from the cobra tree at build time; `--init` writes a starter config via

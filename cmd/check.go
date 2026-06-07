@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	formatCmd "github.com/amarbel-llc/conformist/cmd/format"
 	"github.com/amarbel-llc/conformist/config"
 	"github.com/amarbel-llc/conformist/format"
 	"github.com/amarbel-llc/conformist/stats"
@@ -30,16 +31,20 @@ var (
 )
 
 // ExitCode maps a command error to a process exit code. The `check` subcommand
-// distinguishes findings (1) from operational failures (2) per RFC 0001 §7; all
-// other errors exit 1.
+// distinguishes findings (1) from operational failures (2) per RFC 0001 §7.
+// Repair mode's --commit flag (#24) adds 3 (fixes were applied and committed)
+// and maps its refusals (dirty tree, not a git worktree) to 2; all other
+// errors exit 1.
 func ExitCode(err error) int {
 	switch {
 	case err == nil:
 		return 0
 	case errors.Is(err, ErrCheckFindings):
 		return 1
-	case errors.Is(err, ErrCheckOperational):
+	case errors.Is(err, ErrCheckOperational), errors.Is(err, formatCmd.ErrCommitRefused):
 		return 2
+	case errors.Is(err, formatCmd.ErrFixesCommitted):
+		return 3
 	default:
 		return 1
 	}

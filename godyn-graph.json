@@ -165,6 +165,7 @@
     "isMain": false,
     "local": true,
     "goFiles": [
+      "commit.go",
       "format.go"
     ],
     "cgoFiles": null,
@@ -176,6 +177,7 @@
     "imports": [
       "github.com/amarbel-llc/conformist/config",
       "github.com/amarbel-llc/conformist/format",
+      "github.com/amarbel-llc/conformist/git",
       "github.com/amarbel-llc/conformist/stats",
       "github.com/amarbel-llc/conformist/walk",
       "github.com/amarbel-llc/conformist/walk/cache",
@@ -273,6 +275,7 @@
     "isMain": false,
     "local": true,
     "goFiles": [
+      "commit.go",
       "git.go"
     ],
     "cgoFiles": null,
