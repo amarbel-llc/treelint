@@ -142,7 +142,13 @@ conformist ships a Nix module like treefmt-nix, extended to cover linters. It is
   no longer the `go` source), `utils`, and `purse-first` (source of
   `packages.<sys>.golangci-lint-dewey`, the custom golangci-lint carrying dewey's
   analyzers, re-exported as `.#golangci-lint-dewey` for the `lint-go` lane —
-  purse-first#134 / conformist#10).
+  purse-first#134 / conformist#10). **`nixpkgs-master` is the single sha
+  source**: igloo's `nixpkgs-master` input follows ours — which only works
+  because `pkgs` is `igloo.legacyPackages.<sys>`, NOT the `import igloo {}`
+  shim, which reads igloo's committed flake.lock and is follows-immune
+  (igloo#37) — and purse-first's `igloo`/`nixpkgs-master`/`utils` follow ours
+  too, mirroring eng's follows so the standalone lock matches the build-home
+  closure with no duplicate igloo/nixpkgs subtree.
 - `packages.{default,conformist}` — **per-system** (`godynSystem` in
   `flake.nix`): on `x86_64-linux`, a `symlinkJoin` of the **godyn (native)**
   binary (`buildGoAuto { strategy = "dev"; }`, `doCheck = false`; integration

@@ -8,6 +8,12 @@
     # so no per-repo ldflags wiring is needed. See eng-versioning(7) and
     # amarbel-llc/nixpkgs#31.
     igloo.url = "github:amarbel-llc/igloo";
+    # Apply igloo's overlay to OUR pinned nixpkgs-master (the hydra-vetted
+    # sha eng pins) instead of igloo's own committed copy of the same pin.
+    # Only igloo's flake-path outputs honor this — `pkgs` below therefore
+    # uses `igloo.legacyPackages`, not the `import igloo {}` shim, which
+    # reads igloo's committed flake.lock and is follows-immune (igloo#37).
+    igloo.inputs.nixpkgs-master.follows = "nixpkgs-master";
 
     # Pinned plain nixpkgs, source of the Go dev tooling in the devShell
     # (gofumpt/golangci-lint/gopls). The Go *toolchain* itself now comes from
@@ -20,9 +26,18 @@
     # Source of the custom golangci-lint built with dewey's gclplugin
     # (purse-first#134): `packages.<system>.golangci-lint-dewey`, a complete
     # golangci-lint v2.12.2 with the `dewey` module-plugin analyzers registered.
-    # conformist consumes it for the dewey lint lane (conformist#10). Its own
-    # closure is pinned by purse-first; we do not make it follow our nixpkgs.
+    # conformist consumes it for the dewey lint lane (conformist#10).
     purse-first.url = "github:amarbel-llc/purse-first";
+    # Mirror eng's follows on purse-first (igloo/nixpkgs-master/utils) so the
+    # standalone lock matches the build-home closure and the duplicate
+    # igloo/nixpkgs-master/utils subtree collapses to single nodes. Note
+    # purse-first still consumes igloo via the follows-immune
+    # `import igloo {}` shim (igloo#37), so the igloo follows redirects which
+    # igloo *tree* it builds with (whose committed lock pins the nixpkgs
+    # sha), not the sha directly.
+    purse-first.inputs.igloo.follows = "igloo";
+    purse-first.inputs.nixpkgs-master.follows = "nixpkgs-master";
+    purse-first.inputs.utils.follows = "utils";
   };
 
   outputs =
@@ -43,7 +58,12 @@
     (utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = import igloo { inherit system; };
+        # igloo's flake path, NOT the `import igloo {}` shim: legacyPackages
+        # builds from igloo's nixpkgs-master *input* (redirected to our pinned
+        # sha by the follows above) and already applies the fork overlay +
+        # allowUnfree. The shim resolves nixpkgs from igloo's committed
+        # flake.lock and would silently ignore the follows (igloo#37).
+        pkgs = igloo.legacyPackages.${system};
         pkgs-master = import nixpkgs-master { inherit system; };
 
         # Per-system backend gating: godyn is only exercised on x86_64-linux
