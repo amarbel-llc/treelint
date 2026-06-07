@@ -33,12 +33,22 @@ var (
 	ErrCommitRefused = errors.New("refusing to format and commit")
 )
 
+// CommitOptions carries the --commit flow's knobs from the CLI flags.
+type CommitOptions struct {
+	// AllowDirty admits an unclean working tree; pre-dirty files are excluded
+	// from the fix commit.
+	AllowDirty bool
+	// Trailers are appended to the commit message via `git commit --trailer`
+	// (#26), e.g. a tool-attribution line.
+	Trailers []string
+}
+
 // RunCommit wraps Run with the --commit flow (#24): verify the tree is safe
 // to auto-commit, format/repair in place, then commit exactly the files the
 // run changed as a `chore: conformist fmt+fix` commit. git itself is the
 // change detector — the pre/post `git status` delta — because the formatter
 // pipeline's own change accounting does not see linter-repair writes.
-func RunCommit(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string, allowDirty bool) error {
+func RunCommit(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []string, opts CommitOptions) error {
 	cmd.SilenceUsage = true
 
 	cfg, err := config.FromViper(v)
@@ -51,7 +61,7 @@ func RunCommit(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []s
 		ctx = context.Background()
 	}
 
-	preDirty, err := commitPreflight(ctx, cfg, allowDirty)
+	preDirty, err := commitPreflight(ctx, cfg, opts.AllowDirty)
 	if err != nil {
 		return err
 	}
@@ -87,7 +97,7 @@ func RunCommit(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, paths []s
 	// A failed commit (e.g. the signing agent is locked) must fail loudly:
 	// CommitPaths surfaces git's stderr, no commit is created, and the index
 	// is left untouched (`git commit -- <paths>` stages nothing on failure).
-	sha, err := git.CommitPaths(ctx, cfg.TreeRoot, CommitMessage, toCommit)
+	sha, err := git.CommitPaths(ctx, cfg.TreeRoot, CommitMessage, opts.Trailers, toCommit)
 	if err != nil {
 		return fmt.Errorf("failed to commit fixes: %w", err)
 	}

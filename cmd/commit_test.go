@@ -151,6 +151,76 @@ func TestCommit(t *testing.T) {
 		"the pre-existing dirty file should remain dirty in the working tree")
 }
 
+// TestCommitTrailer covers --trailer (#26): extra trailers are appended to
+// the fix commit's message, and the flag requires --commit.
+func TestCommitTrailer(t *testing.T) {
+	as := require.New(t)
+
+	tempDir := test.TempExamples(t)
+	configPath := filepath.Join(tempDir, "conformist.toml")
+
+	test.ChangeWorkDir(t, tempDir)
+
+	t.Setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+	t.Setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+	t.Setenv("GIT_AUTHOR_NAME", "conformist-test")
+	t.Setenv("GIT_AUTHOR_EMAIL", "conformist-test@example.invalid")
+	t.Setenv("GIT_COMMITTER_NAME", "conformist-test")
+	t.Setenv("GIT_COMMITTER_EMAIL", "conformist-test@example.invalid")
+
+	git := func(args ...string) string {
+		t.Helper()
+
+		out, err := exec.CommandContext(t.Context(), "git", args...).CombinedOutput()
+		as.NoError(err, "git %v: %s", args, out)
+
+		return strings.TrimSpace(string(out))
+	}
+
+	cfg := &config.Config{
+		FormatterConfigs: map[string]*config.Formatter{
+			"append": {
+				Command:  "test-fmt-append",
+				Options:  []string{"hello"},
+				Includes: []string{"ruby/*"},
+			},
+		},
+	}
+
+	test.WriteConfig(t, configPath, cfg)
+
+	git("init")
+	git("add", ".")
+	git("commit", "-m", "init")
+
+	// --trailer without --commit is rejected
+	conformist(t,
+		withArgs("--trailer", "X-Fixed-By: conformist-test"),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorContains(err, "--trailer requires --commit")
+		}),
+	)
+
+	// trailers are appended to the fix commit message
+	conformist(t,
+		withArgs(
+			"--commit",
+			"--trailer", "X-Fixed-By: conformist-test",
+			"--trailer", "X-Pilot: ssh-agent-mux",
+		),
+		withError(func(as *require.Assertions, err error) {
+			as.ErrorIs(err, formatCmd.ErrFixesCommitted)
+			as.Equal(3, cmd.ExitCode(err))
+		}),
+	)
+
+	as.Equal("chore: conformist fmt+fix", git("log", "-1", "--format=%s"))
+
+	trailers := git("log", "-1", "--format=%(trailers)")
+	as.Contains(trailers, "X-Fixed-By: conformist-test")
+	as.Contains(trailers, "X-Pilot: ssh-agent-mux")
+}
+
 // TestCommitStdin asserts --commit refuses stdin mode: there is no working
 // tree state to commit when formatting a stream.
 func TestCommitStdin(t *testing.T) {

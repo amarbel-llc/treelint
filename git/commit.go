@@ -46,10 +46,18 @@ func ChangedPaths(ctx context.Context, treeRoot string) ([]string, error) {
 // paths, taking their content from the working tree (`git commit -- <paths>`).
 // Unrelated staged changes are left in the index untouched. Invoking the real
 // git binary means the repo's commit-signing and identity config are honored.
-// Returns the new commit's hash.
-func CommitPaths(ctx context.Context, treeRoot string, message string, paths []string) (string, error) {
-	args := make([]string, 0, 7+len(paths))
-	args = append(args, "-C", treeRoot, "commit", "--quiet", "-m", message, "--")
+// Each trailer is appended to the message via `git commit --trailer`, which
+// also validates it (a malformed trailer fails the commit). Returns the new
+// commit's hash.
+func CommitPaths(ctx context.Context, treeRoot string, message string, trailers []string, paths []string) (string, error) {
+	args := make([]string, 0, 7+2*len(trailers)+len(paths))
+	args = append(args, "-C", treeRoot, "commit", "--quiet", "-m", message)
+
+	for _, trailer := range trailers {
+		args = append(args, "--trailer", trailer)
+	}
+
+	args = append(args, "--")
 	// the ":(top)" pathspec magic anchors each path to the repository
 	// toplevel, matching the paths ChangedPaths reports even when treeRoot is
 	// a subdirectory of the repository.

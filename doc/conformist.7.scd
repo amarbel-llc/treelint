@@ -42,8 +42,8 @@ conformist has two modes of operation.
 	Applies formatter rewrites and linter repair commands, modifying the tree.
 	This is the bare *conformist* invocation. With *--commit*, conformist then
 	commits exactly the files the run changed, with the message
-	_chore: conformist fmt+fix_, honoring the repository's commit-signing
-	configuration. It exits 0 when the tree was already conformant, 3 when
+	_chore: conformist fmt+fix_ (plus any *--trailer* lines), honoring the
+	repository's commit-signing configuration. It exits 0 when the tree was already conformant, 3 when
 	fixes were applied and committed, and 2 when it refuses to run — on an
 	unclean working tree without *--allow-dirty*, or outside a git worktree.
 	Refusal happens before any formatting. Pre-merge hooks chain it with the

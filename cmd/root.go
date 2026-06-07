@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -100,6 +101,12 @@ func NewRoot(version, commit string) (*cobra.Command, *stats.Stats) {
 			"changes them further.",
 	)
 
+	fs.StringArray(
+		"trailer", nil,
+		"With --commit, append a trailer (e.g. \"Co-Fixed-By: tool <tool@example.com>\") to the "+
+			"commit message. May be repeated.",
+	)
+
 	// --fail-on-change wants changes to fail the run; --commit wants them
 	// committed. (--stdin is rejected by RunCommit's preflight instead, which
 	// exits 2 with a clear message rather than cobra's usage error.)
@@ -171,15 +178,32 @@ func runE(v *viper.Viper, statz *stats.Stats, cmd *cobra.Command, args []string)
 	}
 
 	// auto-commit mode (#24)
-	if commit, err := flags.GetBool("commit"); err != nil {
+	commit, err := flags.GetBool("commit")
+	if err != nil {
 		return fmt.Errorf("failed to read commit flag: %w", err)
-	} else if commit {
+	}
+
+	trailers, err := flags.GetStringArray("trailer")
+	if err != nil {
+		return fmt.Errorf("failed to read trailer flag: %w", err)
+	}
+
+	if commit {
 		allowDirty, err := flags.GetBool("allow-dirty")
 		if err != nil {
 			return fmt.Errorf("failed to read allow-dirty flag: %w", err)
 		}
 
-		return format.RunCommit(v, statz, cmd, args, allowDirty) //nolint:wrapcheck
+		opts := format.CommitOptions{
+			AllowDirty: allowDirty,
+			Trailers:   trailers,
+		}
+
+		return format.RunCommit(v, statz, cmd, args, opts) //nolint:wrapcheck
+	}
+
+	if len(trailers) > 0 {
+		return errors.New("--trailer requires --commit")
 	}
 
 	// format
