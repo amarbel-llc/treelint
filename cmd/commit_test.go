@@ -11,6 +11,7 @@ import (
 	formatCmd "github.com/amarbel-llc/conformist/cmd/format"
 	"github.com/amarbel-llc/conformist/config"
 	"github.com/amarbel-llc/conformist/test"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +20,8 @@ import (
 // `chore: conformist fmt+fix` commit. Exit codes: 0 = tree was already
 // conformant, 3 = fixes were applied and committed, 2 = refused (dirty tree,
 // not a git worktree) or operational error.
-func TestCommit(t *testing.T) {
+func TestCommit(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -153,7 +155,8 @@ func TestCommit(t *testing.T) {
 
 // TestCommitTrailer covers --trailer (#26): extra trailers are appended to
 // the fix commit's message, and the flag requires --commit.
-func TestCommitTrailer(t *testing.T) {
+func TestCommitTrailer(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -225,7 +228,8 @@ func TestCommitTrailer(t *testing.T) {
 // the files staged in the index, restage the formatted content, create no
 // commit. Exit codes: 0 = staged content already conformant, 3 = reformatted
 // and restaged, 2 = refused (partially staged files, no git worktree).
-func TestStaged(t *testing.T) {
+func TestStaged(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -362,7 +366,8 @@ func TestStaged(t *testing.T) {
 
 // TestCommitStdin asserts --commit refuses stdin mode: there is no working
 // tree state to commit when formatting a stream.
-func TestCommitStdin(t *testing.T) {
+func TestCommitStdin(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "conformist.toml")
 

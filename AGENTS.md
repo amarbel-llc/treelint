@@ -30,8 +30,11 @@ not run `just`/`just lint` again right before merging.
   `build-nix`.
 - `just build-go` — fast out-of-nix `go build -o build/conformist .` (version
   stays `dev`/`unknown`; only the nix build injects real version/commit).
-- `just test` / `just test-go` — `nix develop --command go test ./...`. Run a
-  single test with `nix develop --command go test ./format -run TestName`. The
+- `just test` / `just test-go` — `nix develop --command go test -tags test
+  ./...` (the `test` tag gates dewey's `test_ui` package, which the test
+  helpers use — also set as `run.build-tags` in `.golangci.yaml`). Run a
+  single test with
+  `nix develop --command go test -tags test ./format -run TestName`. The
   `cmd` integration tests run conformist against `$TMPDIR` fixtures; a `cmd`
   `TestMain` sets `GIT_CEILING_DIRECTORIES` (git tree-root search) and
   `CONFORMIST_CEILING_DIRECTORIES` (config discovery) to the temp root so they

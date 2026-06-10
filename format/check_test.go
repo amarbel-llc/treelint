@@ -10,10 +10,11 @@ import (
 	"github.com/amarbel-llc/conformist/format"
 	"github.com/amarbel-llc/conformist/stats"
 	"github.com/amarbel-llc/conformist/walk"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/stretchr/testify/require"
 )
 
-func writeFile(t *testing.T, root, rel, content string, mode os.FileMode) string {
+func writeFile(t *test_ui.T, root, rel, content string, mode os.FileMode) string {
 	t.Helper()
 
 	path := filepath.Join(root, rel)
@@ -23,7 +24,7 @@ func writeFile(t *testing.T, root, rel, content string, mode os.FileMode) string
 	return path
 }
 
-func walkFile(t *testing.T, root, rel string) *walk.File {
+func walkFile(t *test_ui.T, root, rel string) *walk.File {
 	t.Helper()
 
 	info, err := os.Stat(filepath.Join(root, rel))
@@ -34,7 +35,8 @@ func walkFile(t *testing.T, root, rel string) *walk.File {
 
 // TestCompositeCheckerLinterFindings verifies that a linter's non-zero exit is
 // surfaced as a lint finding and a clean run is not.
-func TestCompositeCheckerLinterFindings(t *testing.T) {
+func TestCompositeCheckerLinterFindings(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	root := t.TempDir()
 
@@ -72,7 +74,8 @@ func TestCompositeCheckerLinterFindings(t *testing.T) {
 // passes-files=false runs exactly once with no file arguments (a whole-tree
 // check), gated on at least one of its included files being present.
 // See amarbel-llc/conformist#1.
-func TestCompositeCheckerWholeTreeLinter(t *testing.T) {
+func TestCompositeCheckerWholeTreeLinter(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	root := t.TempDir()
 
@@ -124,7 +127,8 @@ func TestCompositeCheckerWholeTreeLinter(t *testing.T) {
 // TestCompositeCheckerSandbox verifies that a fix-only formatter is checked via
 // the sandbox: a file that would change is reported, and the original is never
 // modified on disk.
-func TestCompositeCheckerSandbox(t *testing.T) {
+func TestCompositeCheckerSandbox(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	root := t.TempDir()
 
@@ -174,7 +178,8 @@ func TestCompositeCheckerSandbox(t *testing.T) {
 // (mode 0444, e.g. a /nix/store path under `nix flake check`) must still be
 // checkable by a fix-only formatter. copyIntoSandbox forces owner read+write on
 // the copy so the formatter rewrites it in place; the original is never touched.
-func TestCompositeCheckerSandboxReadOnlySource(t *testing.T) {
+func TestCompositeCheckerSandboxReadOnlySource(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	root := t.TempDir()
 

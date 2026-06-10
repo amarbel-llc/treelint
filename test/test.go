@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
-func SetenvXdgConfigDir(t *testing.T) {
+func SetenvXdgConfigDir(t *test_ui.T) {
 	t.Helper()
 
 	configPath, err := filepath.Abs("../test/config")
@@ -25,7 +25,7 @@ func SetenvXdgConfigDir(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", configPath)
 }
 
-func WriteConfig(t *testing.T, path string, cfg *config.Config) {
+func WriteConfig(t *test_ui.T, path string, cfg *config.Config) {
 	t.Helper()
 
 	oldInfo, err := os.Lstat(path)
@@ -73,7 +73,7 @@ func WriteConfig(t *testing.T, path string, cfg *config.Config) {
 	}
 }
 
-func TempExamples(t *testing.T) string {
+func TempExamples(t *test_ui.T) string {
 	t.Helper()
 	tempDir := t.TempDir()
 	TempExamplesInDir(t, tempDir)
@@ -81,7 +81,7 @@ func TempExamples(t *testing.T) string {
 	return tempDir
 }
 
-func TempExamplesInDir(t *testing.T, dir string) {
+func TempExamplesInDir(t *test_ui.T, dir string) {
 	t.Helper()
 	require.NoError(t, cp.Copy("../test/examples", dir), "failed to copy test data to dir")
 
@@ -90,7 +90,7 @@ func TempExamplesInDir(t *testing.T, dir string) {
 	time.Sleep(time.Second)
 }
 
-func TempFile(t *testing.T, dir string, pattern string, contents *string) *os.File {
+func TempFile(t *test_ui.T, dir string, pattern string, contents *string) *os.File {
 	t.Helper()
 
 	file, err := os.CreateTemp(dir, pattern)
@@ -112,7 +112,7 @@ func TempFile(t *testing.T, dir string, pattern string, contents *string) *os.Fi
 
 // Lutimes is a convenience wrapper for using unix.Lutimes
 // TODO: this will need to be adapted if we support Windows.
-func Lutimes(t *testing.T, path string, atime time.Time, mtime time.Time) error {
+func Lutimes(t *test_ui.T, path string, atime time.Time, mtime time.Time) error {
 	t.Helper()
 
 	var utimes [2]unix.Timeval
@@ -129,7 +129,7 @@ func Lutimes(t *testing.T, path string, atime time.Time, mtime time.Time) error 
 	return nil
 }
 
-func LutimesBump(t *testing.T, path string, atime time.Duration, mtime time.Duration) {
+func LutimesBump(t *test_ui.T, path string, atime time.Duration, mtime time.Duration) {
 	t.Helper()
 
 	now := time.Now()
@@ -150,7 +150,7 @@ func LutimesBump(t *testing.T, path string, atime time.Duration, mtime time.Dura
 
 // ChangeWorkDir changes the current working directory for the duration of the test.
 // The original directory is restored when the test ends.
-func ChangeWorkDir(t *testing.T, dir string) {
+func ChangeWorkDir(t *test_ui.T, dir string) {
 	t.Helper()
 
 	// capture current cwd, so we can replace it after the test is finished

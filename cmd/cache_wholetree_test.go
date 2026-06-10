@@ -8,13 +8,14 @@ import (
 
 	"github.com/amarbel-llc/conformist/config"
 	"github.com/amarbel-llc/conformist/test"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/stretchr/testify/require"
 )
 
 // wholeTreeStub writes an executable stub whole-tree linter that appends a line
 // to `marker` on every invocation (and exits clean), returning its path. The
 // marker lives outside the checked tree so it is never itself a matched file.
-func wholeTreeStub(t *testing.T, dir, marker string) string {
+func wholeTreeStub(t *test_ui.T, dir, marker string) string {
 	t.Helper()
 
 	script := filepath.Join(dir, "whole.sh")
@@ -25,7 +26,7 @@ func wholeTreeStub(t *testing.T, dir, marker string) string {
 }
 
 // markerRuns counts how many times the stub linter has run (lines in marker).
-func markerRuns(t *testing.T, marker string) int {
+func markerRuns(t *test_ui.T, marker string) int {
 	t.Helper()
 
 	data, err := os.ReadFile(marker)
@@ -46,7 +47,8 @@ func markerRuns(t *testing.T, marker string) int {
 // This is a test-first specification and currently FAILS: runCheck passes a nil
 // cache db ("read-only"), so whole-tree checks run on every invocation. A small
 // single-batch tree keeps the check to one invocation per run.
-func TestCheckWholeTreeCache(t *testing.T) {
+func TestCheckWholeTreeCache(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := t.TempDir()
 	test.ChangeWorkDir(t, tempDir)
 
@@ -103,7 +105,8 @@ func TestCheckWholeTreeCache(t *testing.T) {
 // whole-tree entry so the check re-runs even though no file changed.
 //
 // Test-first; currently FAILS for the same reason (no whole-tree cache exists).
-func TestCheckWholeTreeCacheConfigInvalidation(t *testing.T) {
+func TestCheckWholeTreeCacheConfigInvalidation(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := t.TempDir()
 	test.ChangeWorkDir(t, tempDir)
 
@@ -142,7 +145,8 @@ func TestCheckWholeTreeCacheConfigInvalidation(t *testing.T) {
 // TestCheckWholeTreeCacheFindingsNotCached pins amarbel-llc/conformist#16: a
 // whole-tree check that reports findings must NOT be cached, so it re-reports on
 // the next run (with nothing changed) until the problem is fixed.
-func TestCheckWholeTreeCacheFindingsNotCached(t *testing.T) {
+func TestCheckWholeTreeCacheFindingsNotCached(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := t.TempDir()
 	test.ChangeWorkDir(t, tempDir)
 

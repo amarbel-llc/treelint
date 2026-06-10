@@ -286,9 +286,10 @@ test-go:
     # fail loudly if the working tree is mutated during the run so a regression
     # can't hide in a commit. No `set -e`: capture the test result, always run
     # the tree check (even on test failure), then propagate the test status.
+    # -tags test: dewey's test_ui package is behind a `test` build constraint.
     set -uo pipefail
     before=$(git status --porcelain)
-    nix develop --command go test ./...
+    nix develop --command go test -tags test ./...
     rc=$?
     after=$(git status --porcelain)
     if [ "$before" != "$after" ]; then

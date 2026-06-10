@@ -21,13 +21,15 @@ import (
 	"github.com/amarbel-llc/conformist/stats"
 	"github.com/amarbel-llc/conformist/test"
 	"github.com/amarbel-llc/conformist/walk"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/charmbracelet/log"
 	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
 
-func TestOnUnmatched(t *testing.T) {
+func TestOnUnmatched(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -75,12 +77,12 @@ func TestOnUnmatched(t *testing.T) {
 	}
 
 	// default is INFO
-	t.Run("default", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("default"), func(t *test_ui.T) {
 		conformist(t, withArgs("-v"), withNoError(t), withStderr(checkOutput(log.InfoLevel)))
 	})
 
 	// should exit with error when using fatal
-	t.Run("fatal", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("fatal"), func(t *test_ui.T) {
 		errorFn := func(as *require.Assertions, err error) {
 			as.ErrorContains(err, "no formatter for path: "+expectedPaths[0])
 		}
@@ -94,7 +96,7 @@ func TestOnUnmatched(t *testing.T) {
 
 	// test other levels
 	for _, levelStr := range []string{"debug", "info", "warn", "error"} {
-		t.Run(levelStr, func(t *testing.T) {
+		t.Run(test_ui.MakeTestCaseInfo(levelStr), func(t *test_ui.T) {
 			level, err := log.ParseLevel(levelStr)
 			as.NoError(err, "failed to parse log level: %s", level)
 
@@ -114,7 +116,7 @@ func TestOnUnmatched(t *testing.T) {
 		})
 	}
 
-	t.Run("invalid", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("invalid"), func(t *test_ui.T) {
 		// test bad value
 		errorFn := func(arg string) func(as *require.Assertions, err error) {
 			return func(as *require.Assertions, err error) {
@@ -133,7 +135,8 @@ func TestOnUnmatched(t *testing.T) {
 	})
 }
 
-func TestQuiet(t *testing.T) {
+func TestQuiet(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	tempDir := test.TempExamples(t)
 
@@ -160,7 +163,8 @@ func TestQuiet(t *testing.T) {
 	}))
 }
 
-func TestCpuProfile(t *testing.T) {
+func TestCpuProfile(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	tempDir := test.TempExamples(t)
 
@@ -184,7 +188,8 @@ func TestCpuProfile(t *testing.T) {
 	as.FileExists(filepath.Join(tempDir, "env.pprof"))
 }
 
-func TestAllowMissingFormatter(t *testing.T) {
+func TestAllowMissingFormatter(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -198,7 +203,7 @@ func TestAllowMissingFormatter(t *testing.T) {
 		},
 	})
 
-	t.Run("default", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("default"), func(t *test_ui.T) {
 		conformist(t,
 			withError(func(as *require.Assertions, err error) {
 				as.ErrorIs(err, format.ErrCommandNotFound)
@@ -206,7 +211,7 @@ func TestAllowMissingFormatter(t *testing.T) {
 		)
 	})
 
-	t.Run("arg", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("arg"), func(t *test_ui.T) {
 		conformist(t,
 			withArgs("--allow-missing-formatter"),
 			withNoError(t),
@@ -219,13 +224,14 @@ func TestAllowMissingFormatter(t *testing.T) {
 		)
 	})
 
-	t.Run("env", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("env"), func(t *test_ui.T) {
 		t.Setenv("CONFORMIST_ALLOW_MISSING_FORMATTER", "true")
 		conformist(t, withNoError(t))
 	})
 }
 
-func TestSpecifyingFormatters(t *testing.T) {
+func TestSpecifyingFormatters(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	// we use the test formatter to append some whitespace
 	cfg := &config.Config{
 		FormatterConfigs: map[string]*config.Formatter{
@@ -253,7 +259,7 @@ func TestSpecifyingFormatters(t *testing.T) {
 	test.WriteConfig(t, configPath, cfg)
 	test.ChangeWorkDir(t, tempDir)
 
-	t.Run("default", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("default"), func(t *test_ui.T) {
 		conformist(t,
 			withNoError(t),
 			withModtimeBump(tempDir, time.Second),
@@ -266,7 +272,7 @@ func TestSpecifyingFormatters(t *testing.T) {
 		)
 	})
 
-	t.Run("args", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("args"), func(t *test_ui.T) {
 		conformist(t,
 			withArgs("--formatters", "rust,nix"),
 			withModtimeBump(tempDir, time.Second),
@@ -312,7 +318,7 @@ func TestSpecifyingFormatters(t *testing.T) {
 		)
 	})
 
-	t.Run("env", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("env"), func(t *test_ui.T) {
 		t.Setenv("CONFORMIST_FORMATTERS", "ruby,nix")
 
 		conformist(t,
@@ -335,7 +341,7 @@ func TestSpecifyingFormatters(t *testing.T) {
 		)
 	})
 
-	t.Run("bad names", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("bad names"), func(t *test_ui.T) {
 		for _, name := range []string{"foo$", "/bar", "baz%"} {
 			conformist(t,
 				withArgs("--formatters", name),
@@ -374,7 +380,8 @@ func TestSpecifyingFormatters(t *testing.T) {
 	})
 }
 
-func TestIncludesAndExcludes(t *testing.T) {
+func TestIncludesAndExcludes(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -496,11 +503,12 @@ func TestIncludesAndExcludes(t *testing.T) {
 	)
 }
 
-func TestConfigFile(t *testing.T) {
+func TestConfigFile(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	for _, name := range []string{"conformist.toml", ".conformist.toml"} {
-		t.Run(name, func(t *testing.T) {
+		t.Run(test_ui.MakeTestCaseInfo(name), func(t *test_ui.T) {
 			tempDir := test.TempExamples(t)
 
 			// Work from an isolated directory holding a known set of files, to
@@ -597,7 +605,8 @@ func TestConfigFile(t *testing.T) {
 	}
 }
 
-func TestCache(t *testing.T) {
+func TestCache(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -748,7 +757,8 @@ func TestCache(t *testing.T) {
 	)
 }
 
-func TestChangeWorkingDirectory(t *testing.T) {
+func TestChangeWorkingDirectory(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{
@@ -761,7 +771,7 @@ func TestChangeWorkingDirectory(t *testing.T) {
 		},
 	}
 
-	t.Run("default", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("default"), func(t *test_ui.T) {
 		// capture current cwd, so we can replace it after the test is finished
 		cwd, err := os.Getwd()
 		as.NoError(err)
@@ -799,9 +809,9 @@ func TestChangeWorkingDirectory(t *testing.T) {
 		)
 	})
 
-	execute := func(t *testing.T, configFile string, env bool) {
+	execute := func(t *test_ui.T, configFile string, env bool) {
 		t.Helper()
-		t.Run(configFile, func(t *testing.T) {
+		t.Run(test_ui.MakeTestCaseInfo(configFile), func(t *test_ui.T) {
 			// capture current cwd, so we can replace it after the test is finished
 			cwd, err := os.Getwd()
 			as.NoError(err)
@@ -840,13 +850,13 @@ func TestChangeWorkingDirectory(t *testing.T) {
 	// by default, we look for a config file at ./conformist.toml or ./.conformist.toml in the current working directory
 	configFiles := []string{"conformist.toml", ".conformist.toml"}
 
-	t.Run("arg", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("arg"), func(t *test_ui.T) {
 		for _, configFile := range configFiles {
 			execute(t, configFile, false)
 		}
 	})
 
-	t.Run("env", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("env"), func(t *test_ui.T) {
 		for _, configFile := range configFiles {
 			execute(t, configFile, true)
 		}
@@ -856,7 +866,8 @@ func TestChangeWorkingDirectory(t *testing.T) {
 // TestConfigFileLegacyFallback covers the backward-compat discovery of the
 // former treelint.toml filename, and that conformist.toml wins when both are
 // present (see the filenames list in loadConfig).
-func TestConfigFileLegacyFallback(t *testing.T) {
+func TestConfigFileLegacyFallback(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{
@@ -868,7 +879,7 @@ func TestConfigFileLegacyFallback(t *testing.T) {
 		},
 	}
 
-	t.Run("treelint.toml discovered when conformist.toml absent", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("treelint.toml discovered when conformist.toml absent"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 
 		// drop the bundled conformist.toml so only the legacy name remains
@@ -885,7 +896,7 @@ func TestConfigFileLegacyFallback(t *testing.T) {
 		)
 	})
 
-	t.Run("conformist.toml preferred over treelint.toml", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("conformist.toml preferred over treelint.toml"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 
 		// a legacy treelint.toml whose formatter command does not exist: if it
@@ -914,8 +925,9 @@ func TestConfigFileLegacyFallback(t *testing.T) {
 	})
 }
 
-func TestFailOnChange(t *testing.T) {
-	t.Run("change size", func(t *testing.T) {
+func TestFailOnChange(tt *testing.T) {
+	t := &test_ui.T{T: tt}
+	t.Run(test_ui.MakeTestCaseInfo("change size"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 		configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -963,7 +975,7 @@ func TestFailOnChange(t *testing.T) {
 		)
 	})
 
-	t.Run("change modtime", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("change modtime"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 		configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -1025,10 +1037,11 @@ func TestFailOnChange(t *testing.T) {
 	})
 }
 
-func TestCacheBusting(t *testing.T) {
+func TestCacheBusting(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
-	t.Run("formatter_change_config", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("formatter_change_config"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 		configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -1141,7 +1154,7 @@ func TestCacheBusting(t *testing.T) {
 			}))
 	})
 
-	t.Run("formatter_change_binary", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("formatter_change_binary"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 		configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -1246,7 +1259,7 @@ func TestCacheBusting(t *testing.T) {
 		)
 	})
 
-	t.Run("formatter_add_remove", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("formatter_add_remove"), func(t *test_ui.T) {
 		tempDir := test.TempExamples(t)
 		configPath := filepath.Join(tempDir, "conformist.toml")
 
@@ -1409,7 +1422,8 @@ func TestCacheBusting(t *testing.T) {
 	})
 }
 
-func TestGit(t *testing.T) {
+func TestGit(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -1601,7 +1615,8 @@ func TestGit(t *testing.T) {
 	)
 }
 
-func TestJujutsu(t *testing.T) {
+func TestJujutsu(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	test.SetenvXdgConfigDir(t)
@@ -1811,7 +1826,8 @@ func TestJujutsu(t *testing.T) {
 	)
 }
 
-func TestTreeRootCmd(t *testing.T) {
+func TestTreeRootCmd(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -1923,7 +1939,8 @@ func TestTreeRootCmd(t *testing.T) {
 	)
 }
 
-func TestTreeRootExclusivity(t *testing.T) {
+func TestTreeRootExclusivity(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "/conformist.toml")
 
@@ -2026,7 +2043,8 @@ func TestTreeRootExclusivity(t *testing.T) {
 	}
 }
 
-func TestPathsArg(t *testing.T) {
+func TestPathsArg(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	// capture current cwd, so we can replace it after the test is finished
@@ -2138,7 +2156,8 @@ func TestPathsArg(t *testing.T) {
 	)
 }
 
-func TestStdin(t *testing.T) {
+func TestStdin(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 	tempDir := test.TempExamples(t)
 
@@ -2257,7 +2276,8 @@ help:
 	)
 }
 
-func TestDeterministicOrderingInPipeline(t *testing.T) {
+func TestDeterministicOrderingInPipeline(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -2343,12 +2363,13 @@ func TestDeterministicOrderingInPipeline(t *testing.T) {
 	)
 }
 
-func TestRunInSubdir(t *testing.T) {
+func TestRunInSubdir(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	// Run the same test for each walk type
 	for _, walkType := range walk.TypeValues() {
-		t.Run(walkType.String(), func(t *testing.T) {
+		t.Run(test_ui.MakeTestCaseInfo(walkType.String()), func(t *test_ui.T) {
 			tempDir := test.TempExamples(t)
 			configPath := filepath.Join(tempDir, "/conformist.toml")
 
@@ -2436,7 +2457,8 @@ func TestRunInSubdir(t *testing.T) {
 // Regression test for #578.
 //
 // See: https://github.com/numtide/treefmt/issues/578
-func TestProjectRootIsSymlink(t *testing.T) {
+func TestProjectRootIsSymlink(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := t.TempDir()
@@ -2499,7 +2521,8 @@ func TestProjectRootIsSymlink(t *testing.T) {
 	)
 }
 
-func TestConcurrentInvocation(t *testing.T) {
+func TestConcurrentInvocation(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)
@@ -2572,7 +2595,8 @@ func TestConcurrentInvocation(t *testing.T) {
 	as.NoError(eg.Wait())
 }
 
-func TestNoPositionalArgSupport(t *testing.T) {
+func TestNoPositionalArgSupport(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	tempDir := test.TempExamples(t)
 	configPath := filepath.Join(tempDir, "/conformist.toml")
 
@@ -2651,7 +2675,7 @@ func withConfigFunc(path string, fn func() *config.Config) option {
 	}
 }
 
-func withStats(t *testing.T, expected map[stats.Type]int) option {
+func withStats(t *test_ui.T, expected map[stats.Type]int) option {
 	t.Helper()
 
 	return func(o *options) {
@@ -2669,7 +2693,7 @@ func withError(fn func(*require.Assertions, error)) option {
 	}
 }
 
-func withNoError(t *testing.T) option {
+func withNoError(t *test_ui.T) option {
 	t.Helper()
 
 	return func(o *options) {
@@ -2700,7 +2724,7 @@ func withModtimeBump(path string, bump time.Duration) option {
 }
 
 func conformist(
-	t *testing.T,
+	t *test_ui.T,
 	opt ...option,
 ) {
 	t.Helper()

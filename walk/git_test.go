@@ -11,10 +11,12 @@ import (
 	"github.com/amarbel-llc/conformist/stats"
 	"github.com/amarbel-llc/conformist/test"
 	"github.com/amarbel-llc/conformist/walk"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGitReader(t *testing.T) {
+func TestGitReader(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	tempDir := test.TempExamples(t)

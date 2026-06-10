@@ -11,12 +11,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/amarbel-llc/conformist/config"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
-func newViper(t *testing.T) (*viper.Viper, *pflag.FlagSet) {
+func newViper(t *test_ui.T) (*viper.Viper, *pflag.FlagSet) {
 	t.Helper()
 
 	v, err := config.NewViper()
@@ -48,7 +49,7 @@ func newViper(t *testing.T) (*viper.Viper, *pflag.FlagSet) {
 	return v, flags
 }
 
-func writeAndReadBack(t *testing.T, v *viper.Viper, cfg *config.Config) {
+func writeAndReadBack(t *test_ui.T, v *viper.Viper, cfg *config.Config) {
 	t.Helper()
 
 	// serialise the config and read it into viper
@@ -62,7 +63,8 @@ func writeAndReadBack(t *testing.T, v *viper.Viper, cfg *config.Config) {
 	}
 }
 
-func TestLinterConfig(t *testing.T) {
+func TestLinterConfig(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	v, _ := newViper(t)
@@ -116,7 +118,7 @@ func TestLinterConfig(t *testing.T) {
 
 func ptr[T any](v T) *T { return &v }
 
-func readError(t *testing.T, v *viper.Viper, cfg *config.Config, test func(error)) {
+func readError(t *test_ui.T, v *viper.Viper, cfg *config.Config, test func(error)) {
 	t.Helper()
 
 	writeAndReadBack(t, v, cfg)
@@ -129,7 +131,7 @@ func readError(t *testing.T, v *viper.Viper, cfg *config.Config, test func(error
 	test(err)
 }
 
-func readValue(t *testing.T, v *viper.Viper, cfg *config.Config, test func(*config.Config)) {
+func readValue(t *test_ui.T, v *viper.Viper, cfg *config.Config, test func(*config.Config)) {
 	t.Helper()
 
 	writeAndReadBack(t, v, cfg)
@@ -143,7 +145,8 @@ func readValue(t *testing.T, v *viper.Viper, cfg *config.Config, test func(*conf
 	test(decodedCfg)
 }
 
-func TestAllowMissingFormatter(t *testing.T) {
+func TestAllowMissingFormatter(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -172,7 +175,8 @@ func TestAllowMissingFormatter(t *testing.T) {
 	checkValue(true)
 }
 
-func TestCI(t *testing.T) {
+func TestCI(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -210,7 +214,8 @@ func TestCI(t *testing.T) {
 	checkValues(true, true, true, 2)
 }
 
-func TestClearCache(t *testing.T) {
+func TestClearCache(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -240,7 +245,8 @@ func TestClearCache(t *testing.T) {
 	checkValue(true)
 }
 
-func TestCpuProfile(t *testing.T) {
+func TestCpuProfile(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -269,7 +275,8 @@ func TestCpuProfile(t *testing.T) {
 	checkValue("/bla/bla")
 }
 
-func TestExcludes(t *testing.T) {
+func TestExcludes(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -304,7 +311,8 @@ func TestExcludes(t *testing.T) {
 	checkValue([]string{"bleep", "bloop"})
 }
 
-func TestFailOnChange(t *testing.T) {
+func TestFailOnChange(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -333,7 +341,8 @@ func TestFailOnChange(t *testing.T) {
 	checkValue(true)
 }
 
-func TestFormatters(t *testing.T) {
+func TestFormatters(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -380,7 +389,8 @@ func TestFormatters(t *testing.T) {
 	as.ErrorContains(err, "formatter foo not found in config")
 }
 
-func TestNoCache(t *testing.T) {
+func TestNoCache(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -410,7 +420,8 @@ func TestNoCache(t *testing.T) {
 	checkValue(true)
 }
 
-func TestQuiet(t *testing.T) {
+func TestQuiet(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -440,7 +451,8 @@ func TestQuiet(t *testing.T) {
 	checkValue(true)
 }
 
-func TestOnUnmatched(t *testing.T) {
+func TestOnUnmatched(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -469,7 +481,8 @@ func TestOnUnmatched(t *testing.T) {
 	checkValue("fatal")
 }
 
-func TestTreeRoot(t *testing.T) {
+func TestTreeRoot(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -499,7 +512,8 @@ func TestTreeRoot(t *testing.T) {
 	checkValue("/flip/flop")
 }
 
-func TestTreeRootFile(t *testing.T) {
+func TestTreeRootFile(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -544,7 +558,8 @@ func TestTreeRootFile(t *testing.T) {
 	checkValue(tempDir, ".git/config")
 }
 
-func TestTreeRootCmd(t *testing.T) {
+func TestTreeRootCmd(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -591,7 +606,8 @@ func TestTreeRootCmd(t *testing.T) {
 // directory rather than the config file's directory. An out-of-tree
 // --config-file (e.g. a /nix/store path) must not silently redirect the walk.
 // See amarbel-llc/conformist#2.
-func TestTreeRootFallbackToWorkingDir(t *testing.T) {
+func TestTreeRootFallbackToWorkingDir(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -615,7 +631,8 @@ func TestTreeRootFallbackToWorkingDir(t *testing.T) {
 	})
 }
 
-func TestVerbosity(t *testing.T) {
+func TestVerbosity(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -645,7 +662,8 @@ func TestVerbosity(t *testing.T) {
 	checkValue(2)
 }
 
-func TestWalk(t *testing.T) {
+func TestWalk(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -674,7 +692,8 @@ func TestWalk(t *testing.T) {
 	checkValue("auto")
 }
 
-func TestWorkingDirectory(t *testing.T) {
+func TestWorkingDirectory(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -712,7 +731,8 @@ func TestWorkingDirectory(t *testing.T) {
 	checkValue(cwd)
 }
 
-func TestStdin(t *testing.T) {
+func TestStdin(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	cfg := &config.Config{}
@@ -874,10 +894,11 @@ func TestSampleConfigFile(t *testing.T) {
 // TREELINT_ env prefix to CONFORMIST_ (see config.NewViper). The fallback shim
 // runs eagerly inside NewViper and copies via os.Setenv, so the legacy variable
 // must be set before newViper is called.
-func TestLegacyEnvPrefix(t *testing.T) {
+func TestLegacyEnvPrefix(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
-	t.Run("falls back to TREELINT_ when CONFORMIST_ is unset", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("falls back to TREELINT_ when CONFORMIST_ is unset"), func(t *test_ui.T) {
 		t.Setenv("TREELINT_ON_UNMATCHED", "debug")
 		// the shim's os.Setenv copy is not tracked by t.Setenv; clean it up so
 		// it does not leak into sibling tests.
@@ -890,7 +911,7 @@ func TestLegacyEnvPrefix(t *testing.T) {
 		})
 	})
 
-	t.Run("CONFORMIST_ takes precedence over TREELINT_", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("CONFORMIST_ takes precedence over TREELINT_"), func(t *test_ui.T) {
 		t.Setenv("TREELINT_ON_UNMATCHED", "debug")
 		t.Setenv("CONFORMIST_ON_UNMATCHED", "error")
 

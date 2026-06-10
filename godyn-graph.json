@@ -340,6 +340,7 @@
     "imports": [
       "github.com/BurntSushi/toml",
       "github.com/amarbel-llc/conformist/config",
+      "github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui",
       "github.com/otiai10/copy",
       "github.com/stretchr/testify/require",
       "golang.org/x/sys/unix"
@@ -397,6 +398,65 @@
     ]
   },
   {
+    "importPath": "github.com/amarbel-llc/purse-first/libs/dewey/internal/0/stack_frame",
+    "dir": "internal/0/stack_frame",
+    "name": "stack_frame",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "error_and_frame.go",
+      "error_tree.go",
+      "errors_and_frames.go",
+      "frame.go",
+      "main.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": null
+  },
+  {
+    "importPath": "github.com/amarbel-llc/purse-first/libs/dewey/internal/alfa/test_ui",
+    "dir": "internal/alfa/test_ui",
+    "name": "test_ui",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "test_case.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": [
+      "github.com/amarbel-llc/purse-first/libs/dewey/internal/0/stack_frame"
+    ]
+  },
+  {
+    "importPath": "github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui",
+    "dir": "pkgs/test_ui",
+    "name": "test_ui",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "main.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": [
+      "github.com/amarbel-llc/purse-first/libs/dewey/internal/alfa/test_ui"
+    ]
+  },
+  {
     "importPath": "github.com/aymanbagabas/go-osc52/v2",
     "dir": ".",
     "name": "osc52",
@@ -420,6 +480,7 @@
     "isMain": false,
     "local": false,
     "goFiles": [
+      "doc.go",
       "env.go",
       "env_other.go",
       "profile.go",
@@ -434,7 +495,6 @@
     "imports": [
       "github.com/charmbracelet/x/ansi",
       "github.com/charmbracelet/x/term",
-      "github.com/lucasb-eyer/go-colorful",
       "github.com/xo/terminfo"
     ]
   },
@@ -525,23 +585,28 @@
       "cursor.go",
       "cwd.go",
       "doc.go",
+      "finalterm.go",
       "focus.go",
       "graphics.go",
       "hyperlink.go",
+      "inband.go",
       "iterm2.go",
       "keypad.go",
       "kitty.go",
       "method.go",
       "mode.go",
+      "mode_deprecated.go",
       "modes.go",
       "mouse.go",
       "notification.go",
+      "palette.go",
       "parser.go",
       "parser_decode.go",
       "parser_handler.go",
       "parser_sync.go",
       "passthrough.go",
       "paste.go",
+      "progress.go",
       "reset.go",
       "screen.go",
       "sgr.go",
@@ -550,6 +615,7 @@
       "termcap.go",
       "title.go",
       "truncate.go",
+      "urxvt.go",
       "util.go",
       "width.go",
       "winop.go",
@@ -563,32 +629,12 @@
     "embedFiles": null,
     "embedPatterns": null,
     "imports": [
-      "github.com/charmbracelet/x/ansi/kitty",
       "github.com/charmbracelet/x/ansi/parser",
+      "github.com/clipperhouse/displaywidth",
+      "github.com/clipperhouse/uax29/v2/graphemes",
       "github.com/lucasb-eyer/go-colorful",
-      "github.com/mattn/go-runewidth",
-      "github.com/rivo/uniseg"
+      "github.com/mattn/go-runewidth"
     ]
-  },
-  {
-    "importPath": "github.com/charmbracelet/x/ansi/kitty",
-    "dir": "kitty",
-    "name": "kitty",
-    "isMain": false,
-    "local": false,
-    "goFiles": [
-      "decoder.go",
-      "encoder.go",
-      "graphics.go",
-      "options.go"
-    ],
-    "cgoFiles": null,
-    "cFiles": null,
-    "hFiles": null,
-    "sFiles": null,
-    "embedFiles": null,
-    "embedPatterns": null,
-    "imports": null
   },
   {
     "importPath": "github.com/charmbracelet/x/ansi/parser",
@@ -623,6 +669,7 @@
       "hardscroll.go",
       "hashmap.go",
       "link.go",
+      "pen.go",
       "screen.go",
       "sequence.go",
       "style.go",
@@ -666,6 +713,68 @@
     "embedPatterns": null,
     "imports": [
       "golang.org/x/sys/unix"
+    ]
+  },
+  {
+    "importPath": "github.com/clipperhouse/displaywidth",
+    "dir": ".",
+    "name": "displaywidth",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "gen.go",
+      "graphemes.go",
+      "trie.go",
+      "width.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": [
+      "github.com/clipperhouse/stringish",
+      "github.com/clipperhouse/uax29/v2/graphemes"
+    ]
+  },
+  {
+    "importPath": "github.com/clipperhouse/stringish",
+    "dir": ".",
+    "name": "stringish",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "interface.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": null
+  },
+  {
+    "importPath": "github.com/clipperhouse/uax29/v2/graphemes",
+    "dir": "graphemes",
+    "name": "graphemes",
+    "isMain": false,
+    "local": false,
+    "goFiles": [
+      "iterator.go",
+      "reader.go",
+      "splitfunc.go",
+      "trie.go"
+    ],
+    "cgoFiles": null,
+    "cFiles": null,
+    "hFiles": null,
+    "sFiles": null,
+    "embedFiles": null,
+    "embedPatterns": null,
+    "imports": [
+      "github.com/clipperhouse/stringish"
     ]
   },
   {
@@ -1020,7 +1129,9 @@
       "happy_palettegen.go",
       "hexcolor.go",
       "hsluv.go",
+      "rand.go",
       "soft_palettegen.go",
+      "sort.go",
       "warm_palettegen.go"
     ],
     "cgoFiles": null,
@@ -1069,7 +1180,7 @@
     "embedFiles": null,
     "embedPatterns": null,
     "imports": [
-      "github.com/rivo/uniseg"
+      "github.com/clipperhouse/uax29/v2/graphemes"
     ]
   },
   {

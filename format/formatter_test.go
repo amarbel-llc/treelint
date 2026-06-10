@@ -10,6 +10,7 @@ import (
 	"github.com/amarbel-llc/conformist/config"
 	"github.com/amarbel-llc/conformist/stats"
 	"github.com/amarbel-llc/conformist/test"
+	"github.com/amarbel-llc/purse-first/libs/dewey/pkgs/test_ui"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,7 +54,8 @@ func TestInvalidFormatterName(t *testing.T) {
 	}
 }
 
-func TestFormatSignature(t *testing.T) {
+func TestFormatSignature(tt *testing.T) {
+	t := &test_ui.T{T: tt}
 	as := require.New(t)
 
 	const batchSize = 1024
@@ -95,7 +97,7 @@ func TestFormatSignature(t *testing.T) {
 
 	oldSignature := assertSignatureChangedAndStable(t, as, cfg, nil)
 
-	t.Run("change formatter mod time", func(t *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("change formatter mod time"), func(t *test_ui.T) {
 		for _, name := range []string{"black", "rufo"} {
 			t.Logf("changing mod time of %s", name)
 
@@ -107,7 +109,7 @@ func TestFormatSignature(t *testing.T) {
 		}
 	})
 
-	t.Run("modify formatter options", func(_ *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("modify formatter options"), func(_ *test_ui.T) {
 		f, err := NewCompositeFormatter(cfg, &statz, batchSize)
 		as.NoError(err)
 
@@ -141,7 +143,7 @@ func TestFormatSignature(t *testing.T) {
 		oldSignature = assertSignatureChangedAndStable(t, as, cfg, oldSignature)
 	})
 
-	t.Run("add/remove formatters", func(_ *testing.T) {
+	t.Run(test_ui.MakeTestCaseInfo("add/remove formatters"), func(_ *test_ui.T) {
 		cfg.FormatterConfigs["go"] = &config.Formatter{
 			Command:  "gofmt",
 			Options:  []string{"-w"},
@@ -161,7 +163,7 @@ func TestFormatSignature(t *testing.T) {
 }
 
 func assertSignatureChangedAndStable(
-	t *testing.T,
+	t *test_ui.T,
 	as *require.Assertions,
 	cfg *config.Config,
 	oldSignature signature,
